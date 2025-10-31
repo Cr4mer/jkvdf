@@ -58,7 +58,6 @@ var httpClient = &http.Client{
 			if err != nil {
 				return nil, err
 			}
-
 			ips, err := resolver.LookupIPAddr(ctx, host)
 			if err != nil {
 				return nil, err

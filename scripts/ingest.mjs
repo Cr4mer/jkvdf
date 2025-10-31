@@ -9,24 +9,50 @@ if (!FACEIT_API_KEY) {
 
 const FACEIT_BASE = 'https://open.faceit.com/data/v4';
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-async function faceit(endpoint) {
-  const res = await fetch(`${FACEIT_BASE}${endpoint}`, {
-    headers: {
-      'Authorization': `Bearer ${FACEIT_API_KEY}`,
-      'Content-Type': 'application/json'
+async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeout);
+    return res;
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
+  }
+}
+
+async function faceit(endpoint, opts = {}) {
+  const headers = {
+    Authorization: `Bearer ${FACEIT_API_KEY}`,
+    'Content-Type': 'application/json',
+  };
+
+  const url = `${FACEIT_BASE}${endpoint}`;
+  console.log(`[faceit] GET ${url}`);
+  try {
+    const res = await fetchWithTimeout(url, { headers, ...opts }, 15000);
+
+    if (res.status === 429) {
+      console.warn('[faceit] Rate limited; waiting 2s and retrying');
+      await sleep(2000);
+      return faceit(endpoint, opts);
     }
-  });
-  if (res.status === 429) {
-    await sleep(2000);
-    return faceit(endpoint);
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`[faceit] ${res.status} ${res.statusText}: ${body}`);
+    }
+
+    return res.json();
+  } catch (err) {
+    console.error(`[faceit] ${endpoint} failed: ${err.message || err}`);
+    throw err;
   }
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Faceit error ${res.status} ${res.statusText}: ${body}`);
-  }
-  return res.json();
 }
 
 const repoRoot = process.cwd();
@@ -50,22 +76,21 @@ async function getPlayerId(nickname) {
 }
 
 async function getRecentMatches(playerId, limit = 5) {
-  // CS2 first; fallback to csgo
   try {
     const data = await faceit(`/players/${playerId}/history?game=cs2&offset=0&limit=${limit}`);
     return data.items ?? [];
-  } catch (e) {
+  } catch (err) {
+    console.warn(`[history] cs2 failed for ${playerId}, retrying csgo: ${err.message || err}`);
     const data = await faceit(`/players/${playerId}/history?game=csgo&offset=0&limit=${limit}`);
     return data.items ?? [];
   }
 }
 
 async function getMatchDetails(matchId) {
-  // Not all fields are guaranteed; this endpoint may change. Best-effort.
   try {
-    const data = await faceit(`/matches/${matchId}`);
-    return data;
-  } catch {
+    return await faceit(`/matches/${matchId}`);
+  } catch (err) {
+    console.warn(`[match-details] ${matchId} failed: ${err.message || err}`);
     return null;
   }
 }
@@ -76,17 +101,25 @@ for (const p of players) {
   const nickname = p.faceitNickname;
   if (!nickname) continue;
 
+  console.log(`\n== Processing player ${nickname} ==`);
   let playerId;
   try {
     playerId = await getPlayerId(nickname);
+    console.log(`Resolved ${nickname} → ${playerId}`);
   } catch (e) {
     console.warn(`Failed to resolve playerId for ${nickname}: ${e.message}`);
     continue;
   }
 
-  const recent = await getRecentMatches(playerId, 10);
+  let recent;
+  try {
+    recent = await getRecentMatches(playerId, 10);
+  } catch (err) {
+    console.error(`Failed to fetch matches for ${nickname}: ${err.message || err}`);
+    continue;
+  }
+  console.log(`Fetched ${recent.length} matches for ${nickname}`);
 
-  // Track last processed per player to reduce churn
   const lastProcessed = state[playerId]?.lastProcessedMatchId;
   let newestForState = lastProcessed || null;
 
@@ -103,7 +136,6 @@ for (const p of players) {
       urlRoom: `https://www.faceit.com/en/cs2/room/${m.match_id}`,
     };
 
-    // Track newest
     if (!newestForState || (m.finished_at && Number(m.finished_at) > Number(newestForState))) {
       newestForState = m.match_id;
     }
@@ -111,10 +143,8 @@ for (const p of players) {
     const key = byKey(item);
     if (seen.has(key)) continue;
 
-    // Try match details (optional)
-    const details = await getMatchDetails(m.match_id).catch(() => null);
+    const details = await getMatchDetails(m.match_id);
     if (details) {
-      // Placeholders for future use; demo resource is not always exposed here
       item.map = details?.voting?.map?.pick?.[0] || details?.map || null;
       item.score = details?.results?.score || null;
     }
@@ -122,20 +152,19 @@ for (const p of players) {
     newEntries.push(item);
     seen.add(key);
 
-    // Be gentle with API
+    // Throttle to avoid hammering the API
     await sleep(250);
   }
 
   state[playerId] = {
     faceitNickname: nickname,
     lastProcessedMatchId: newestForState || lastProcessed || null,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 
   await sleep(250);
 }
 
-// Merge and keep recent N (optional: 1000)
 const merged = [...matchesIndex.matches, ...newEntries]
   .sort((a, b) => Number(b.finishedAt || 0) - Number(a.finishedAt || 0))
   .slice(0, 1000);
@@ -143,4 +172,4 @@ const merged = [...matchesIndex.matches, ...newEntries]
 writeFileSync(matchesPath, JSON.stringify({ matches: merged }, null, 2));
 writeFileSync(statePath, JSON.stringify(state, null, 2));
 
-console.log(`Ingest complete. Added ${newEntries.length} new entries. Saved to data/matches.json`);
+console.log(`\nIngest complete. Added ${newEntries.length} new entries. Saved to data/matches.json`);

@@ -43,7 +43,6 @@ var faceitAPIKey string
 var resolver = &net.Resolver{
 	PreferGo: true,
 	Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-		// Always talk to Google DNS over TCP; most providers accept TCP/53
 		return (&net.Dialer{}).DialContext(ctx, "tcp", "8.8.8.8:53")
 	},
 }
@@ -182,7 +181,11 @@ type faceitMatchDetails struct {
 	} `json:"voting"`
 }
 
-var faceitAPIKey string
+type faceitDownloadResponse struct {
+	Payload struct {
+		DownloadURL string `json:"download_url"`
+	} `json:"payload"`
+}
 
 func main() {
 	faceitKey := os.Getenv("FACEIT_API_KEY")
@@ -441,7 +444,7 @@ func extractDemoAndMap(details *faceitMatchDetails, base matchEntry) (string, st
 	if details == nil {
 		return "", base.Map
 	}
-	var mapName = base.Map
+	mapName := base.Map
 	if mapName == "" {
 		if details.Map != "" {
 			mapName = details.Map
@@ -454,12 +457,6 @@ func extractDemoAndMap(details *faceitMatchDetails, base matchEntry) (string, st
 		demoURL = details.DemoURL[0]
 	}
 	return demoURL, mapName
-}
-
-type faceitDownloadResponse struct {
-	Payload struct {
-		DownloadURL string `json:"download_url"`
-	} `json:"payload"`
 }
 
 func getSignedDemoURL(resource string) (string, error) {
@@ -496,10 +493,9 @@ func getSignedDemoURL(resource string) (string, error) {
 	}
 
 	return decoded.Payload.DownloadURL, nil
-}	
+}
 
 func downloadDemo(matchID, url string) (string, error) {
-	// Ask FACEIT for a signed download URL; fall back to the original if it fails
 	signedURL, err := getSignedDemoURL(url)
 	if err != nil {
 		log.Printf("  warning: could not get signed URL (%v), using original URL", err)
@@ -601,21 +597,21 @@ func parseDemoForHighlights(demoPath string, group *groupedMatch, tracked map[ui
 		multiStates = make(map[uint64]multiState)
 	})
 
-parser.RegisterEventHandler(func(e events.Kill) {
-	if e.Killer == nil || e.Victim == nil {
-		return
-	}
-	if e.Killer.Team == e.Victim.Team {
-		return
-	}
+	parser.RegisterEventHandler(func(e events.Kill) {
+		if e.Killer == nil || e.Victim == nil {
+			return
+		}
+		if e.Killer.Team == e.Victim.Team {
+			return
+		}
 
-	steamID := e.Killer.SteamID64
-	if _, ok := tracked[steamID]; !ok {
-		return
-	}
+		steamID := e.Killer.SteamID64
+		if _, ok := tracked[steamID]; !ok {
+			return
+		}
 
-	tick := parser.GameState().IngameTick()
-	state := multiStates[steamID]
+		tick := parser.GameState().IngameTick()
+		state := multiStates[steamID]
 
 		if state.round != currentRound {
 			state = multiState{}
@@ -668,7 +664,6 @@ parser.RegisterEventHandler(func(e events.Kill) {
 
 	matchFinished := toMatchTime(group.Base.FinishedAt)
 	mapName := group.Base.Map
-
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	var results []highlight
@@ -678,190 +673,4 @@ parser.RegisterEventHandler(func(e events.Kill) {
 		h := highlight{
 			ID:               fmt.Sprintf("%s:%s", group.MatchID, info.PlayerID),
 			MatchID:          group.MatchID,
-			PlayerID:         info.PlayerID,
-			FaceitNickname:   info.FaceitNickname,
-			Map:              mapName,
-			Round:            candidate.Round,
-			TickStart:        candidate.TickStart,
-			TickEnd:          candidate.TickEnd,
-			TimeStartSeconds: candidate.TimeStartSeconds,
-			TimeEndSeconds:   candidate.TimeEndSeconds,
-			Kills:            candidate.Kills,
-			Headshots:        candidate.Headshots,
-			Score:            candidate.Score,
-			Category:         candidate.Category,
-			Description:      fmt.Sprintf("%s %s", info.FaceitNickname, candidate.Description),
-			MatchFinishedAt:  matchFinished,
-			RecordedAt:       now,
-			DemoURL:          demoURL,
-			ClipURL:          "",
-			SteamID:          info.SteamID,
-			SteamID64:        strconv.FormatUint(info.SteamID64, 10),
-		}
-		results = append(results, h)
-	}
-
-	return results, nil
-}
-
-func scoreForState(state multiState) float64 {
-	base := float64(state.count) * 100.0
-	headshotBonus := float64(state.headshots) * 25.0
-	streakBonus := math.Pow(1.1, float64(state.count-2)) * 50.0
-	return base + headshotBonus + streakBonus
-}
-
-func clampFloat(v, min float64) float64 {
-	if v < min {
-		return min
-	}
-	return v
-}
-
-func clampInt(v, min int) int {
-	if v < min {
-		return min
-	}
-	return v
-}
-
-func mergeHighlights(existing, newOnes []highlight) []highlight {
-	index := make(map[string]highlight, len(existing)+len(newOnes))
-	for _, h := range existing {
-		if h.ID != "" {
-			index[h.ID] = h
-		}
-	}
-	for _, h := range newOnes {
-		if h.ID != "" {
-			index[h.ID] = h
-		}
-	}
-	result := make([]highlight, 0, len(index))
-	for _, h := range index {
-		result = append(result, h)
-	}
-	sort.Slice(result, func(i, j int) bool {
-		ti := parseTime(result[i].MatchFinishedAt)
-		tj := parseTime(result[j].MatchFinishedAt)
-		if ti.Equal(tj) {
-			return result[i].Score > result[j].Score
-		}
-		return ti.After(tj)
-	})
-	if len(result) > maxHighlightsKeep {
-		result = result[:maxHighlightsKeep]
-	}
-	return result
-}
-
-func buildLeaderboards(highlights []highlight) leaderboards {
-	perPlayer := make(map[string][]highlight)
-	for _, h := range highlights {
-		perPlayer[h.PlayerID] = append(perPlayer[h.PlayerID], h)
-	}
-
-	lastGame := []highlight{}
-	last10 := []highlight{}
-
-	for _, list := range perPlayer {
-		sort.Slice(list, func(i, j int) bool {
-			ti := parseTime(list[i].MatchFinishedAt)
-			tj := parseTime(list[j].MatchFinishedAt)
-			if ti.Equal(tj) {
-				return list[i].Score > list[j].Score
-			}
-			return ti.After(tj)
-		})
-		if len(list) > 0 {
-			lastGame = append(lastGame, list[0])
-		}
-
-		limit := 10
-		if len(list) < limit {
-			limit = len(list)
-		}
-		if limit > 0 {
-			best := list[0]
-			for i := 0; i < limit; i++ {
-				if list[i].Score > best.Score {
-					best = list[i]
-				}
-			}
-			last10 = append(last10, best)
-		}
-	}
-
-	sort.Slice(lastGame, func(i, j int) bool {
-		return strings.ToLower(lastGame[i].FaceitNickname) < strings.ToLower(lastGame[j].FaceitNickname)
-	})
-	sort.Slice(last10, func(i, j int) bool {
-		return strings.ToLower(last10[i].FaceitNickname) < strings.ToLower(last10[j].FaceitNickname)
-	})
-
-	allTime := make([]highlight, len(highlights))
-	copy(allTime, highlights)
-	sort.Slice(allTime, func(i, j int) bool {
-		if allTime[i].Score == allTime[j].Score {
-			return parseTime(allTime[i].MatchFinishedAt).After(parseTime(allTime[j].MatchFinishedAt))
-		}
-		return allTime[i].Score > allTime[j].Score
-	})
-	if len(allTime) > allTimeLimit {
-		allTime = allTime[:allTimeLimit]
-	}
-
-	return leaderboards{
-		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
-		LastGame:    lastGame,
-		Last10:      last10,
-		AllTimeTop:  allTime,
-	}
-}
-
-func toMatchTime(ts int64) string {
-	if ts <= 0 {
-		return time.Now().UTC().Format(time.RFC3339)
-	}
-	// FACEIT timestamps are seconds since epoch
-	return time.Unix(ts, 0).UTC().Format(time.RFC3339)
-}
-
-func parseTime(value string) time.Time {
-	if value == "" {
-		return time.Unix(0, 0)
-	}
-	t, err := time.Parse(time.RFC3339, value)
-	if err != nil {
-		return time.Unix(0, 0)
-	}
-	return t
-}
-
-func steamTo64(input string) (uint64, error) {
-	input = strings.TrimSpace(strings.ToUpper(input))
-	if input == "" {
-		return 0, fmt.Errorf("empty steam id")
-	}
-	if strings.HasPrefix(input, "STEAM_") {
-		body := strings.TrimPrefix(input, "STEAM_")
-		parts := strings.Split(body, ":")
-		if len(parts) != 3 {
-			return 0, fmt.Errorf("invalid steam format %s", input)
-		}
-		y, err := strconv.ParseUint(parts[1], 10, 64)
-		if err != nil {
-			return 0, err
-		}
-		z, err := strconv.ParseUint(parts[2], 10, 64)
-		if err != nil {
-			return 0, err
-		}
-		return 76561197960265728 + z*2 + y, nil
-	}
-	if strings.HasPrefix(input, "7656") {
-		return strconv.ParseUint(input, 10, 64)
-	}
-	// numeric fallback
-	return strconv.ParseUint(input, 10, 64)
-}
+			PlayerID

@@ -39,15 +39,11 @@ const (
 )
 
 var resolver = &net.Resolver{
-    PreferGo: true,
-    Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-        d := net.Dialer{}
-        return d.DialContext(ctx, network, "8.8.8.8:53")
-    },
-}
-
-func init() {
-    net.DefaultResolver = resolver
+	PreferGo: true,
+	Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+		d := net.Dialer{}
+		return d.DialContext(ctx, network, "8.8.8.8:53")
+	},
 }
 
 func init() {
@@ -57,11 +53,25 @@ func init() {
 var httpClient = &http.Client{
 	Timeout: 2 * time.Minute,
 	Transport: &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-			Resolver:  resolver,
-		}).DialContext,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, err
+			}
+
+			ips, err := resolver.LookupIPAddr(ctx, host)
+			if err != nil {
+				return nil, err
+			}
+			for _, ip := range ips {
+				conn, dialErr := net.DialTimeout(network, net.JoinHostPort(ip.IP.String(), port), 30*time.Second)
+				if dialErr == nil {
+					return conn, nil
+				}
+				err = dialErr
+			}
+			return nil, err
+		},
 	},
 }
 

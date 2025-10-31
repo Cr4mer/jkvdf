@@ -87,7 +87,7 @@ type matchEntry struct {
 	FaceitNickname string `json:"faceitNickname"`
 	MatchID        string `json:"matchId"`
 	GameMode       string `json:"gameMode"`
-	Region         string `json:`json:"region"`
+	Region         string `json:"region"`
 	StartedAt      int64  `json:"startedAt"`
 	FinishedAt     int64  `json:"finishedAt"`
 	TeamsSize      int    `json:"teamsSize"`
@@ -335,20 +335,20 @@ func loadMatches(path string) (matchesPayload, error) {
 	if err := json.Unmarshal(data, &payload); err != nil {
 		return payload, fmt.Errorf("decode matches: %w", err)
 	}
-	return payload, nil
+	return	payload, nil
 }
 
 func loadHighlights(path string) highlightsPayload {
-	data, err := os.ReadFile(path)
+	data,	err := os.ReadFile(path)
 	if err != nil {
 		return highlightsPayload{Highlights: []highlight{}}
 	}
 	var payload highlightsPayload
 	if err := json.Unmarshal(data, &payload); err != nil {
-		log.Printf("warning: corrupt highlights file, starting fresh: %v", err)
+		log.Printf("warning: corrupt highlights file, starting fresh: %v",	err)
 		return highlightsPayload{Highlights: []highlight{}}
 	}
-	return payload
+	return	payload
 }
 
 func saveHighlights(path string, highlights []highlight) error {
@@ -360,7 +360,7 @@ func saveHighlights(path string, highlights []highlight) error {
 	return os.WriteFile(path, data, 0o644)
 }
 
-func saveLeaderboards(path string, lb leaderboards) error {
+func saveLeaderboards(path string, lb leaderboards)	error {
 	data, err := json.MarshalIndent(lb, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode leaderboards: %w", err)
@@ -370,7 +370,7 @@ func saveLeaderboards(path string, lb leaderboards) error {
 
 func groupMatches(matches []matchEntry) map[string]*groupedMatch {
 	groups := make(map[string]*groupedMatch)
-	for _, m := range matches {
+	for _,	m := range matches {
 		if m.MatchID == "" {
 			continue
 		}
@@ -407,40 +407,40 @@ func buildTrackedPlayers(group *groupedMatch, players map[string]playerConfig) m
 		}
 		result[cfg.SteamID64] = playerInfo{
 			FaceitNickname: cfg.FaceitNickname,
-			SteamID:        cfg.SteamID,
-			SteamID64:      cfg.SteamID64,
-			PlayerID:       entry.PlayerID,
+			SteamID:       	cfg.SteamID,
+			SteamID64:     	cfg.SteamID64,
+			PlayerID:      	entry.PlayerID,
 		}
 	}
 	return result
 }
 
 func fetchMatchDetails(faceitKey, matchID string) (*faceitMatchDetails, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://open.faceit.com/data/v4/matches/%s", matchID), nil)
+	req,	err :=	http.NewRequest("GET", fmt.Sprintf("https://open.faceit.com/data/v4/matches/%s", matchID), nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+faceitKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := httpClient.Do(req)
+	resp, err :=	httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 400 {
+	defer	resp.Body.Close()
+	if	resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("faceit response %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("faceit response %d: %s",	resp.StatusCode, string(body))
 	}
 
-	var details faceitMatchDetails
-	if err := json.NewDecoder(resp.Body).Decode(&details); err != nil {
+	var details	faceitMatchDetails
+	if err :=	json.NewDecoder(resp.Body).Decode(&details); err != nil {
 		return nil, fmt.Errorf("decode match details: %w", err)
 	}
-	return &details, nil
+	return &details,	nil
 }
 
-func extractDemoAndMap(details *faceitMatchDetails, base matchEntry) (string, string) {
+func extractDemoAndMap(details *faceitMatchDetails, base matchEntry)	(string, string) {
 	if details == nil {
 		return "", base.Map
 	}
@@ -513,7 +513,7 @@ func downloadDemo(matchID, url string) (string, error) {
 		} else if resp.StatusCode >= 400 {
 			body, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
-			lastErr = fmt.Errorf("demo download %d: %s", resp.StatusCode, string(body))
+			lastErr = fmt.Errorf("demo download %d: %s", resp.StatusCode,	string(body))
 		} else {
 			defer resp.Body.Close()
 
@@ -594,17 +594,11 @@ func parseDemoForHighlights(demoPath string, group *groupedMatch, tracked map[ui
 	})
 
 	parser.RegisterEventHandler(func(e events.Kill) {
-		if e.Killer == nil || e.Victim == nil {
-			return
-		}
-		if e.Killer.Team == e.Victim.Team {
-			return
-		}
+		if e.Killer == nil || e.Victim == nil { return }
+		if e.Killer.Team == e.Victim.Team { return }
 
 		steamID := e.Killer.SteamID64
-		if _, ok := tracked[steamID]; !ok {
-			return
-		}
+		if _, ok := tracked[steamID]; !ok { return }
 
 		tick := parser.GameState().IngameTick()
 		state := multiStates[steamID]
@@ -666,10 +660,10 @@ func parseDemoForHighlights(demoPath string, group *groupedMatch, tracked map[ui
 	for steamID, candidate := range candidates {
 		info := tracked[steamID]
 
-		h := highlight{
+		results = append(results, highlight{
 			ID:               fmt.Sprintf("%s:%s", group.MatchID, info.PlayerID),
 			MatchID:          group.MatchID,
-			PlayerID:         info.PlayerID,
+			PlayerID:        	info.PlayerID,
 			FaceitNickname:   info.FaceitNickname,
 			Map:              mapName,
 			Round:            candidate.Round,
@@ -688,8 +682,7 @@ func parseDemoForHighlights(demoPath string, group *groupedMatch, tracked map[ui
 			ClipURL:          "",
 			SteamID:          info.SteamID,
 			SteamID64:        strconv.FormatUint(info.SteamID64, 10),
-		}
-		results = append(results, h)
+		})
 	}
 
 	return results, nil
@@ -760,7 +753,7 @@ func buildLeaderboards(highlights []highlight) leaderboards {
 			ti := parseTime(list[i].MatchFinishedAt)
 			tj := parseTime(list[j].MatchFinishedAt)
 			if ti.Equal(tj) {
-			return list[i].Score > list[j].Score
+				return list[i].Score > list[j].Score
 			}
 			return ti.After(tj)
 		})
@@ -775,10 +768,10 @@ func buildLeaderboards(highlights []highlight) leaderboards {
 		if limit > 0 {
 			best := list[0]
 			for i := 0; i < limit; i++ {
-			if list[i].Score > best.Score {
-				best = list[i]
+				if list[i].Score > best.Score {
+					best = list[i]
+				}
 			}
-		}
 			last10 = append(last10, best)
 		}
 	}
@@ -839,11 +832,11 @@ func steamTo64(input string) (uint64, error) {
 		if len(parts) != 3 {
 			return 0, fmt.Errorf("invalid steam format %s", input)
 		}
-		y, err := strconv.ParseUint(parts[1], 10, 64)
+		y, err :="strconv.ParseUint(parts[1], 10, 64)
 		if err != nil {
 			return 0, err
 		}
-		z, err := strconv.ParseUint(parts[2], 10, 64)
+		z, err :=strconv.ParseUint(parts[2], 10, 64)
 		if err != nil {
 			return 0, err
 		}

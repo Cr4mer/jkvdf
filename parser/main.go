@@ -480,24 +480,21 @@ func parseDemoForHighlights(demoPath string, group *groupedMatch, tracked map[ui
 		multiStates = make(map[uint64]multiState)
 	})
 
-	parser.RegisterEventHandler(func(e events.Kill) {
-		if e.Killer == nil || e.Victim == nil {
-			return
-		}
-		if e.Killer.Team == e.Victim.Team {
-			return
-		}
-		steamID := e.Killer.SteamID64
--		info, ok := tracked[steamID]
--		if !ok {
--			return
--		}
-+		if _, ok := tracked[steamID]; !ok {
-+			return
-+		}
+parser.RegisterEventHandler(func(e events.Kill) {
+	if e.Killer == nil || e.Victim == nil {
+		return
+	}
+	if e.Killer.Team == e.Victim.Team {
+		return
+	}
 
-		tick := parser.GameState().IngameTick()
-		state := multiStates[steamID]
+	steamID := e.Killer.SteamID64
+	if _, ok := tracked[steamID]; !ok {
+		return
+	}
+
+	tick := parser.GameState().IngameTick()
+	state := multiStates[steamID]
 
 		if state.round != currentRound {
 			state = multiState{}

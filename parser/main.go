@@ -182,13 +182,14 @@ type faceitMatchDetails struct {
 	} `json:"voting"`
 }
 
+var faceitAPIKey string
+
 func main() {
-faceitKey := os.Getenv("FACEIT_API_KEY")
-if faceitKey == "" {
-	log.Fatal("FACEIT_API_KEY is not set")
-}
-faceitAPIKey = faceitKey
+	faceitKey := os.Getenv("FACEIT_API_KEY")
+	if faceitKey == "" {
+		log.Fatal("FACEIT_API_KEY is not set")
 	}
+	faceitAPIKey = faceitKey
 
 	repoRoot, err := os.Getwd()
 	if err != nil {
@@ -232,7 +233,7 @@ faceitAPIKey = faceitKey
 		}
 
 		log.Printf("Processing match %s", matchID)
-		details, err := fetchMatchDetails(faceitKey, matchID)
+		details, err := fetchMatchDetails(faceitAPIKey, matchID)
 		if err != nil {
 			log.Printf("  failed to fetch match details: %v", err)
 			continue

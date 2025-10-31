@@ -38,6 +38,8 @@ const (
 	demoDownloadBaseDelay   = time.Second
 )
 
+var faceitAPIKey string
+
 var resolver = &net.Resolver{
 	PreferGo: true,
 	Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
@@ -181,9 +183,11 @@ type faceitMatchDetails struct {
 }
 
 func main() {
-	faceitKey := os.Getenv("FACEIT_API_KEY")
-	if faceitKey == "" {
-		log.Fatal("FACEIT_API_KEY is not set")
+faceitKey := os.Getenv("FACEIT_API_KEY")
+if faceitKey == "" {
+	log.Fatal("FACEIT_API_KEY is not set")
+}
+faceitAPIKey = faceitKey
 	}
 
 	repoRoot, err := os.Getwd()
@@ -451,7 +455,57 @@ func extractDemoAndMap(details *faceitMatchDetails, base matchEntry) (string, st
 	return demoURL, mapName
 }
 
+type faceitDownloadResponse struct {
+	Payload struct {
+		DownloadURL string `json:"download_url"`
+	} `json:"payload"`
+}
+
+func getSignedDemoURL(resource string) (string, error) {
+	if faceitAPIKey == "" {
+		return resource, fmt.Errorf("FACEIT_API_KEY not initialized")
+	}
+
+	payload := strings.NewReader(fmt.Sprintf(`{"type":"demo","resource":"%s"}`, resource))
+	req, err := http.NewRequest("POST", "https://open.faceit.com/data/v4/downloads", payload)
+	if err != nil {
+		return resource, err
+	}
+	req.Header.Set("Authorization", "Bearer "+faceitAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return resource, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return resource, fmt.Errorf("downloads API %d: %s", resp.StatusCode, string(body))
+	}
+
+	var decoded faceitDownloadResponse
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
+		return resource, err
+	}
+
+	if decoded.Payload.DownloadURL == "" {
+		return resource, fmt.Errorf("downloads API returned empty download_url")
+	}
+
+	return decoded.Payload.DownloadURL, nil
+}	
+
 func downloadDemo(matchID, url string) (string, error) {
+	// Ask FACEIT for a signed download URL; fall back to the original if it fails
+	signedURL, err := getSignedDemoURL(url)
+	if err != nil {
+		log.Printf("  warning: could not get signed URL (%v), using original URL", err)
+	} else {
+		url = signedURL
+	}
+
 	var lastErr error
 
 	for attempt := 1; attempt <= demoDownloadMaxAttempts; attempt++ {

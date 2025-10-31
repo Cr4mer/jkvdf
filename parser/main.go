@@ -41,8 +41,8 @@ const (
 var resolver = &net.Resolver{
 	PreferGo: true,
 	Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-		d := net.Dialer{}
-		return d.DialContext(ctx, network, "8.8.8.8:53")
+		// Always talk to Google DNS over TCP; most providers accept TCP/53
+		return (&net.Dialer{}).DialContext(ctx, "tcp", "8.8.8.8:53")
 	},
 }
 

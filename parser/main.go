@@ -38,7 +38,24 @@ const (
 	demoDownloadBaseDelay   = time.Second
 )
 
-var httpClient = &http.Client{Timeout: 2 * time.Minute}
+var resolver = &net.Resolver{
+	PreferGo: true,
+	Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+		d := net.Dialer{}
+		return d.DialContext(ctx, network, "8.8.8.8:53")
+	},
+}
+
+var httpClient = &http.Client{
+	Timeout: 2 * time.Minute,
+	Transport: &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			Resolver:  resolver,
+		}).DialContext,
+	},
+}
 
 type playerConfig struct {
 	FaceitNickname string `json:"faceitNickname"`
@@ -442,13 +459,24 @@ func downloadDemo(matchID, url string) (string, error) {
 			defer tmpFile.Close()
 
 			reader := io.Reader(resp.Body)
-			if strings.HasSuffix(strings.ToLower(url), ".gz") || strings.Contains(resp.Header.Get("Content-Type"), "gzip") {
+			lower := strings.ToLower(url)
+
+			switch {
+			case strings.HasSuffix(lower, ".gz") || strings.Contains(resp.Header.Get("Content-Type"), "gzip"):
 				gzReader, err := gzip.NewReader(resp.Body)
 				if err != nil {
 					return "", fmt.Errorf("gzip reader: %w", err)
 				}
 				defer gzReader.Close()
 				reader = gzReader
+
+			case strings.HasSuffix(lower, ".zst") || strings.Contains(resp.Header.Get("Content-Type"), "zstd"):
+				zReader, err := zstd.NewReader(resp.Body)
+				if err != nil {
+					return "", fmt.Errorf("zstd reader: %w", err)
+				}
+				defer zReader.Close()
+				reader = zReader
 			}
 
 			if _, err := io.Copy(tmpFile, reader); err != nil {

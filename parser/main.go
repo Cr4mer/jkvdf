@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -18,9 +19,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/klauspost/compress/zstd"
 	dem "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/events"
-	"github.com/klauspost/compress/zstd"
 )
 
 const (
@@ -28,7 +29,6 @@ const (
 	highlightsFile    = "highlights.json"
 	leaderboardsFile  = "leaderboards.json"
 	matchesFile       = "matches.json"
-	stateFile         = "state.json"
 	preSeconds        = 3.0
 	postSeconds       = 4.0
 	killGapSeconds    = 7.0
@@ -39,7 +39,10 @@ const (
 	demoDownloadBaseDelay   = time.Second
 )
 
-var faceitAPIKey string
+var (
+	faceitAPIKey    string
+	ErrDemoNotReady = errors.New("faceit demo not ready yet")
+)
 
 var resolver = &net.Resolver{
 	PreferGo: true,
@@ -75,7 +78,7 @@ var httpClient = &http.Client{
 			return nil, err
 		},
 	},
-)
+}
 
 type playerConfig struct {
 	FaceitNickname string `json:"faceitNickname"`
@@ -149,13 +152,13 @@ type playerInfo struct {
 }
 
 type multiState struct {
-	count      int
-	headshots  int
-	startTick  int
-	lastTick   int
-	startTime  float64
-	lastTime   float64
-	round      int
+	count     int
+	headshots int
+	startTick int
+	lastTick  int
+	startTime float64
+	lastTime  float64
+	round     int
 }
 
 type highlightCandidate struct {
@@ -253,8 +256,12 @@ func main() {
 		}
 
 		demoPath, err := downloadDemo(matchID, demoURL)
+		if errors.Is(err, ErrDemoNotReady) {
+			log.Printf("  demo not ready yet for %s, will retry later", matchID)
+			continue
+		}
 		if err != nil {
-			log.Printf("  skipping %s: %v", matchID, err)
+			log.Printf("  failed to download demo: %v", err)
 			continue
 		}
 		defer os.Remove(demoPath)
@@ -334,9 +341,9 @@ func loadMatches(path string) (matchesPayload, error) {
 		return payload, fmt.Errorf("read matches: %w", err)
 	}
 	if err := json.Unmarshal(data, &payload); err != nil {
-		return	payload, fmt.Errorf("decode matches: %w", err)
+		return payload, fmt.Errorf("decode matches: %w", err)
 	}
-	return	payload, nil
+	return payload, nil
 }
 
 func loadHighlights(path string) highlightsPayload {
@@ -390,7 +397,7 @@ func groupMatches(matches []matchEntry) map[string]*groupedMatch {
 			g.Players[nick] = m
 		}
 		if g.Base.Map == "" && m.Map != "" {
-			g	Base.Map = m.Map
+			g.Base.Map = m.Map
 		}
 		if g.Base.FinishedAt == 0 && m.FinishedAt != 0 {
 			g.Base.FinishedAt = m.FinishedAt
@@ -403,7 +410,7 @@ func buildTrackedPlayers(group *groupedMatch, players map[string]playerConfig) m
 	result := make(map[uint64]playerInfo)
 	for nick, entry := range group.Players {
 		cfg, ok := players[nick]
-		if !ok || cfg.SteamID64 == 0 ||	entry.PlayerID == "" {
+		if !ok || cfg.SteamID64 == 0 || entry.PlayerID == "" {
 			continue
 		}
 		result[cfg.SteamID64] = playerInfo{
@@ -429,13 +436,13 @@ func fetchMatchDetails(faceitKey, matchID string) (*faceitMatchDetails, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp	StatusCode >= 400 {
+	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("faceit response %d: %s", resp.StatusCode, string(body))
 	}
 
 	var details faceitMatchDetails
-	if err :=	json.NewDecoder(resp.Body).Decode(&details); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&details); err != nil {
 		return nil, fmt.Errorf("decode match details: %w", err)
 	}
 	return &details, nil
@@ -446,7 +453,7 @@ func extractDemoAndMap(details *faceitMatchDetails, base matchEntry) (string, st
 		return "", base.Map
 	}
 	mapName := base.Map
-	if	mapName == "" {
+	if mapName == "" {
 		if details.Map != "" {
 			mapName = details.Map
 		} else if len(details.Voting.Map.Pick) > 0 {
@@ -460,56 +467,56 @@ func extractDemoAndMap(details *faceitMatchDetails, base matchEntry) (string, st
 	return demoURL, mapName
 }
 
-func getSignedDemoURL(rawURL string) (string, bool, error) {
+func getSignedDemoURL(rawURL string) (string, error) {
 	if faceitAPIKey == "" {
-		return rawURL, false, fmt.Errorf("FACEIT_API_KEY not initialized")
+		return rawURL, fmt.Errorf("FACEIT_API_KEY not initialized")
 	}
 
 	u, err := url.Parse(rawURL)
 	if err != nil {
-		return rawURL, false, fmt.Errorf("parse demo URL: %w", err)
+		return rawURL, fmt.Errorf("parse demo URL: %w", err)
 	}
 	resource := strings.TrimPrefix(u.Path, "/")
-	payload := strings.NewReader(fmt.Sprintf(`{"type":"demo","resource":"%s"}`, resource))
+	payload := strings.NewReader(fmt.Sprintf("{\"type\":\"demo\",\"resource\":\"%s\"}", resource))
 
-	req, err := http.NewRequest("POST", "https://open.faceit.com/data/v4/downloads",	payload)
+	req, err := http.NewRequest("POST", "https://open.faceit.com/data/v4/downloads", payload)
 	if err != nil {
-		return rawURL, false, err
+		return rawURL, err
 	}
 	req.Header.Set("Authorization", "Bearer "+faceitAPIKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return rawURL, false, err
+		return rawURL, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		log.Printf("  demo not available yet for resource %q (downloads API 404)", resource)
-		return rawURL, false, nil
+		return "", ErrDemoNotReady
 	}
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return rawURL, false, fmt.Errorf("downloads API %d: %s", resp.StatusCode, string(body))
+		return rawURL, fmt.Errorf("downloads API %d: %s", resp.StatusCode, string(body))
 	}
 
 	var decoded faceitDownloadResponse
 	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
-		return rawURL, false, err
+		return rawURL, err
 	}
 	if decoded.Payload.DownloadURL == "" {
-		return rawURL, false, fmt.Errorf("downloads API returned empty download_url")
+		return rawURL, fmt.Errorf("downloads API returned empty download_url")
 	}
-	return decoded.Payload.DownloadURL, true, nil
+	return decoded.Payload.DownloadURL, nil
 }
 
 func downloadDemo(matchID, url string) (string, error) {
-	signedURL, available, err := getSignedDemoURL(url)
+	signedURL, err := getSignedDemoURL(url)
+	if errors.Is(err, ErrDemoNotReady) {
+		return "", ErrDemoNotReady
+	}
 	if err != nil {
-		log.Printf("  warning: could not get signed URL (%v), using original URL", err)
-	} else if !available {
-		return "", fmt.Errorf("demo not ready yet for match %s", matchID)
+		log.Printf("  warning: could not get signed URL (%v), falling back to original host", err)
 	} else {
 		url = signedURL
 	}
@@ -554,7 +561,7 @@ func downloadDemo(matchID, url string) (string, error) {
 				if err != nil {
 					return "", fmt.Errorf("zstd reader: %w", err)
 				}
-				defer zReader	Close()
+				defer zReader.Close()
 				reader = zReader
 			}
 
@@ -566,7 +573,7 @@ func downloadDemo(matchID, url string) (string, error) {
 
 		if attempt < demoDownloadMaxAttempts {
 			backoff := demoDownloadBaseDelay * time.Duration(attempt*attempt)
-			log.Printf("  download failed (attempt %d/%d): %v – retrying in %s", attempt, demoDownloadMaxAttempts, lastErr, backoff)
+			log.Printf("  download failed (attempt %d/%d): %v - retrying in %s", attempt, demoDownloadMaxAttempts, lastErr, backoff)
 			time.Sleep(backoff)
 		}
 	}
@@ -654,217 +661,184 @@ func parseDemoForHighlights(demoPath string, group *groupedMatch, tracked map[ui
 			return
 		}
 
+		estimatedStart := state.startTick - preTicks
+		if estimatedStart < 0 {
+			estimatedStart = 0
+		}
+		estimatedEnd := state.lastTick + postTicks
+
 		candidates[steamID] = highlightCandidate{
 			SteamID64:        steamID,
-			Round:            state.round,
+			Round:            currentRound,
 			Kills:            state.count,
 			Headshots:        state.headshots,
-			TickStart:        clampInt(state.startTick-preTicks, 0),
-			TickEnd:          state.lastTick + postTicks,
-			TimeStartSeconds: clampFloat(state.startTime-preSeconds, 0),
+			TickStart:        estimatedStart,
+			TickEnd:          estimatedEnd,
+			TimeStartSeconds: clampFloat(state.startTime-(preSeconds/2), 0, math.MaxFloat64),
 			TimeEndSeconds:   state.lastTime + postSeconds,
 			Score:            score,
-			Category:         fmt.Sprintf("%dx multi-kill", state.count),
-			Description:      fmt.Sprintf("%d kills with %d headshots in round %d", state.count, state.headshots, state.round),
+			Category:         "multikill",
+			Description:      fmt.Sprintf("%s %dk on %s", info.FaceitNickname, state.count, group.Base.Map),
 		}
-
 	})
 
-	if err := parser.ParseToEnd(); err != nil && err != io.EOF {
-		return nil, fmt.Errorf("parse demo: %w", err)
+	if err := parser.ParseToEnd(); err != nil {
+		return nil, fmt.Errorf("parse demo events: %w", err)
 	}
 
-	matchFinished := toMatchTime(group.Base.FinishedAt)
-	mapName := group.Base.Map
-	now := time.Now().UTC().Format(time.RFC3339)
-
-	var results []highlight
-	for steamID, candidate := range candidates {
-		info := tracked[steamID]
-		results = append(results, highlight{
-			ID:               fmt.Sprintf("%s:%s", group.MatchID, info.PlayerID),
+	var highlights []highlight
+	for _, cand := range candidates {
+		info := tracked[cand.SteamID64]
+		h := highlight{
+			ID:               fmt.Sprintf("%s-%d-%d", group.MatchID, cand.Round, cand.TickStart),
 			MatchID:          group.MatchID,
 			PlayerID:         info.PlayerID,
 			FaceitNickname:   info.FaceitNickname,
-			Map:              mapName,
-			Round:            candidate.Round,
-			TickStart:        clampInt(candidate.TickStart, 0),
-			TickEnd:          candidate.TickEnd,
-			TimeStartSeconds: clampFloat(candidate.TimeStartSeconds, 0),
-			TimeEndSeconds:   candidate.TimeEndSeconds,
-			Kills:            candidate.Kills,
-			Headshots:        candidate.Headshots,
-			Score:            candidate.Score,
-			Category:         candidate.Category,
-			Description:      fmt.Sprintf("%s %s", info.FaceitNickname, candidate.Description),
-			MatchFinishedAt:  matchFinished,
-			RecordedAt:       now,
+			Map:              group.Base.Map,
+			Round:            cand.Round,
+			TickStart:        cand.TickStart,
+			TickEnd:          cand.TickEnd,
+			TimeStartSeconds: cand.TimeStartSeconds,
+			TimeEndSeconds:   cand.TimeEndSeconds,
+			Kills:            cand.Kills,
+			Headshots:        cand.Headshots,
+			Score:            cand.Score,
+			Category:         cand.Category,
+			Description:      cand.Description,
+			MatchFinishedAt:  toMatchTime(group.Base.FinishedAt),
+			RecordedAt:       time.Now().UTC().Format(time.RFC3339),
 			DemoURL:          demoURL,
-			ClipURL:          "",
 			SteamID:          info.SteamID,
 			SteamID64:        strconv.FormatUint(info.SteamID64, 10),
-		})
+		}
+		highlights = append(highlights, h)
 	}
 
-	return results, nil
+	sort.SliceStable(highlights, func(i, j int) bool {
+		return highlights[i].Score > highlights[j].Score
+	})
+
+	return highlights, nil
 }
 
 func scoreForState(state multiState) float64 {
-	base := float64(state.count) * 100.0
-	headshotBonus := float64(state.headshots) * 25.0
-	streakBonus := math.Pow(1.1, float64(state.count-2)) * 50.0
-	return base + headshotBonus + streakBonus
+	base := float64(state.count * state.count)
+	hsBonus := float64(state.headshots) * 0.5
+	timeBonus := clampFloat(10-(state.lastTime-state.startTime), 0, 10) * 0.1
+	return base + hsBonus + timeBonus
 }
 
-func clampFloat(v, min float64) float64 {
+func clampFloat(v, min, max float64) float64 {
 	if v < min {
 		return min
+	}
+	if v > max {
+		return max
 	}
 	return v
 }
 
-func clampInt(v, min int) int {
+func clampInt(v, min, max int) int {
 	if v < min {
 		return min
+	}
+	if v > max {
+		return max
 	}
 	return v
 }
 
-func mergeHighlights(existing, newOnes []highlight) []highlight {
-	index := make(map[string]highlight, len(existing)+len(newOnes))
-	for _, h := range existing {
-		if h.ID != "" {
-			index[h.ID] = h
+func mergeHighlights(existing, added []highlight) []highlight {
+	merged := append([]highlight{}, existing...)
+	merged = append(merged, added...)
+
+	sort.SliceStable(merged, func(i, j int) bool {
+		if merged[i].MatchFinishedAt == merged[j].MatchFinishedAt {
+			return merged[i].Score > merged[j].Score
 		}
-	}
-	for _, h := range newOnes {
-		if h	ID != "" {
-			index[h.ID] = h
-		}
-	}
-	result := make([]highlight, 0, len(index))
-	for _, h := range index {
-		result = append(result, h)
-	}
-	sort.Slice(result, func(i, j int) bool {
-		ti := parseTime(result[i].MatchFinishedAt)
-		tj := parseTime(result[j].MatchFinishedAt)
-		if ti.Equal(tj) {
-			return	result[i].Score > result[j].Score
-		}
-		return	ti.After(tj)
+		return merged[i].MatchFinishedAt > merged[j].MatchFinishedAt
 	})
-	if len(result) > maxHighlightsKeep {
-		result = result[:maxHighlightsKeep]
+
+	if len(merged) > maxHighlightsKeep {
+		merged = merged[:maxHighlightsKeep]
 	}
-	return	result
+	return merged
 }
 
 func buildLeaderboards(highlights []highlight) leaderboards {
-	perPlayer := make(map[string][]highlight)
+	now := time.Now().UTC().Format(time.RFC3339)
+	lb := leaderboards{
+		GeneratedAt: now,
+		LastGame:    []highlight{},
+		Last10:      []highlight{},
+		AllTimeTop:  []highlight{},
+	}
+
+	if len(highlights) == 0 {
+		return lb
+	}
+
+	byMatch := make(map[string][]highlight)
 	for _, h := range highlights {
-		perPlayer[h.PlayerID] = append(perPlayer[h.PlayerID], h)
+		byMatch[h.MatchID] = append(byMatch[h.MatchID], h)
 	}
 
-	lastGame := []highlight{}
-	last10 := []highlight{}
+	var matchIDs []string
+	for matchID := range byMatch {
+		matchIDs = append(matchIDs, matchID)
+	}
+	sort.Slice(matchIDs, func(i, j int) bool { return matchIDs[i] > matchIDs[j] })
 
-	for _, list := range perPlayer {
-		sort.Slice(list, func(i, j int) bool {
-			ti := parseTime(list[i].MatchFinishedAt)
-			tj := parseTime(list[j].MatchFinishedAt)
-			if	ti.Equal(tj) {
-				return list[i].Score > list[j].Score
-			}
-			return ti.After(tj)
-		})
-		if len(list) > 0 {
-			lastGame =	append(lastGame, list[0])
-		}
-
-		limit := 10
-		if len(list) < limit {
-			limit = len(list)
-		}
-		if limit > 0 {
-			best := list[0]
-			for i := 0; i < limit; i++ {
-				if list[i].Score > best.Score {
-					best = list[i]
-				}
-			}
-			last10 = append(last10, best)
+	if len(matchIDs) > 0 {
+		latest := byMatch[matchIDs[0]]
+		sort.SliceStable(latest, func(i, j int) bool { return latest[i].Score > latest[j].Score })
+		if len(latest) > 0 {
+			lb.LastGame = append(lb.LastGame, latest[0])
 		}
 	}
 
-	sort.Slice(lastGame, func(i, j int) bool {
-		return strings.ToLower(lastGame[i].FaceitNickname) < strings.ToLower(lastGame[j].FaceitNickname)
-	})
-	sort.Slice(last10, func(i, j int) bool {
-		return strings.ToLower(last10[i].FaceitNickname) < strings.ToLower(last10[j].FaceitNickname)
-	})
+	if len(highlights) > 0 {
+		limit := clampInt(len(highlights), 0, 10)
+		lb.Last10 = append(lb.Last10, highlights[:limit]...)
+	}
 
-	allTime := make([]highlight, len(highlights))
-	copy(allTime, highlights)
-	sort.Slice(allTime, func(i, j int) bool {
+	allTime := append([]highlight{}, highlights...)
+	sort.SliceStable(allTime, func(i, j int) bool {
 		if allTime[i].Score == allTime[j].Score {
-			return parseTime(allTime[i].MatchFinishedAt).After(parseTime(allTime[j].MatchFinishedAt))
+			return allTime[i].MatchFinishedAt > allTime[j].MatchFinishedAt
 		}
 		return allTime[i].Score > allTime[j].Score
 	})
-	if len(allTime) > allTimeLimit {
-		allTime = allTime[:allTimeLimit]
-	}
+	limit := clampInt(len(allTime), 0, allTimeLimit)
+	lb.AllTimeTop = append(lb.AllTimeTop, allTime[:limit]...)
 
-	return leaderboards{
-		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
-		LastGame:    lastGame,
-		Last10:      last10,
-		AllTimeTop:  allTime,
-	}
+	return lb
 }
 
 func toMatchTime(ts int64) string {
-	if ts <= 0 {
-		return time.Now().UTC().Format(time.RFC3339)
+	if ts == 0 {
+		return ""
 	}
 	return time.Unix(ts, 0).UTC().Format(time.RFC3339)
 }
 
-func parseTime(value string) time.Time {
-	if value == "" {
-		return time.Unix(0, 0)
+func steamTo64(steamID string) (uint64, error) {
+	parts := strings.Split(steamID, ":")
+	if len(parts) != 3 {
+		return 0, fmt.Errorf("invalid steamID: %s", steamID)
 	}
-	t, err := time.Parse(time.RFC3339, value)
+	universe := parts[0]
+	if universe != "STEAM_0" && universe != "STEAM_1" {
+		return 0, fmt.Errorf("unsupported steam universe: %s", universe)
+	}
+	y, err := strconv.ParseUint(parts[1], 10, 64)
 	if err != nil {
-		return time.Unix(0, 0)
+		return 0, fmt.Errorf("parse y: %w", err)
 	}
-	return t
-}
+	z, err := strconv.ParseUint(parts[2], 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse z: %w", err)
+	}
 
-func steamTo64(input string) (uint64, error) {
-	input = strings.TrimSpace(strings.ToUpper(input))
-	if input == "" {
-		return 0, fmt.Errorf("empty steam id")
-	}
-	if strings.HasPrefix(input, "STEAM_") {
-		body := strings.TrimPrefix(input, "STEAM_")
-		parts := strings.Split(body, ":")
-		if len(parts) != 3 {
-			return 0, fmt.Errorf("invalid steam format %s", input)
-		}
-		y, err := strconv.ParseUint(parts[1], 10, 64)
-		if err != nil {
-			return 0, err
-		}
-		z, err := strconv.ParseUint(parts[2], 10, 64)
-		if err != nil {
-		 return 0, err
-		}
-		return 76561197960265728 + z*2 + y, nil
-	}
-	if strings.HasPrefix(input, "7656") {
-		return strconv.ParseUint(input, 10, 64)
-	}
-	return strconv.ParseUint(input, 10, 64)
+	return 76561197960265728 + z*2 + y, nil
 }

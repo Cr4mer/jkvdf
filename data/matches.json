@@ -1,0 +1,1124 @@
+{
+  "matches": [
+    {
+      "playerId": "74653485-99fc-43a9-b1c7-34d9c6fc47dd",
+      "faceitNickname": "Cr4mer",
+      "matchId": "1-4c9e9874-cefe-4d22-9603-b54ffc05fc54",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761766905,
+      "finishedAt": 1761769320,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-4c9e9874-cefe-4d22-9603-b54ffc05fc54",
+      "map": "de_nuke",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "91ecf010-8a6d-4680-8979-7b404194a8b7",
+      "faceitNickname": "faqin",
+      "matchId": "1-4c9e9874-cefe-4d22-9603-b54ffc05fc54",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761766905,
+      "finishedAt": 1761769320,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-4c9e9874-cefe-4d22-9603-b54ffc05fc54",
+      "map": "de_nuke",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "8e914cd4-327d-4618-8d7d-0073ca0d2a20",
+      "faceitNickname": "Black_panth",
+      "matchId": "1-4c9e9874-cefe-4d22-9603-b54ffc05fc54",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761766905,
+      "finishedAt": 1761769320,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-4c9e9874-cefe-4d22-9603-b54ffc05fc54",
+      "map": "de_nuke",
+      "score": {
+        "faction1": 0,
+        "faction2": 1
+      }
+    },
+    {
+      "playerId": "59a2019b-eee4-4901-9fef-8e80d2a0ee7d",
+      "faceitNickname": "psYKENN",
+      "matchId": "1-4c9e9874-cefe-4d22-9603-b54ffc05fc54",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761766905,
+      "finishedAt": 1761769320,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-4c9e9874-cefe-4d22-9603-b54ffc05fc54",
+      "map": "de_nuke",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "910aa336-b589-4e0b-b763-ac0fc9be77dc",
+      "faceitNickname": "pharty",
+      "matchId": "1-4c9e9874-cefe-4d22-9603-b54ffc05fc54",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761766905,
+      "finishedAt": 1761769320,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-4c9e9874-cefe-4d22-9603-b54ffc05fc54",
+      "map": "de_nuke",
+      "score": {
+        "faction1": 0,
+        "faction2": 1
+      }
+    },
+    {
+      "playerId": "74653485-99fc-43a9-b1c7-34d9c6fc47dd",
+      "faceitNickname": "Cr4mer",
+      "matchId": "1-7ae9fb4b-8c6e-4970-bc14-cb0893aa198a",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761763090,
+      "finishedAt": 1761766243,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-7ae9fb4b-8c6e-4970-bc14-cb0893aa198a",
+      "map": "de_inferno",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "91ecf010-8a6d-4680-8979-7b404194a8b7",
+      "faceitNickname": "faqin",
+      "matchId": "1-7ae9fb4b-8c6e-4970-bc14-cb0893aa198a",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761763090,
+      "finishedAt": 1761766243,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-7ae9fb4b-8c6e-4970-bc14-cb0893aa198a",
+      "map": "de_inferno",
+      "score": {
+        "faction1": 0,
+        "faction2": 1
+      }
+    },
+    {
+      "playerId": "8e914cd4-327d-4618-8d7d-0073ca0d2a20",
+      "faceitNickname": "Black_panth",
+      "matchId": "1-7ae9fb4b-8c6e-4970-bc14-cb0893aa198a",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761763090,
+      "finishedAt": 1761766243,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-7ae9fb4b-8c6e-4970-bc14-cb0893aa198a",
+      "map": "de_inferno",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "59a2019b-eee4-4901-9fef-8e80d2a0ee7d",
+      "faceitNickname": "psYKENN",
+      "matchId": "1-7ae9fb4b-8c6e-4970-bc14-cb0893aa198a",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761763090,
+      "finishedAt": 1761766243,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-7ae9fb4b-8c6e-4970-bc14-cb0893aa198a",
+      "map": "de_inferno",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "910aa336-b589-4e0b-b763-ac0fc9be77dc",
+      "faceitNickname": "pharty",
+      "matchId": "1-7ae9fb4b-8c6e-4970-bc14-cb0893aa198a",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761763090,
+      "finishedAt": 1761766243,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-7ae9fb4b-8c6e-4970-bc14-cb0893aa198a",
+      "map": "de_inferno",
+      "score": {
+        "faction1": 0,
+        "faction2": 1
+      }
+    },
+    {
+      "playerId": "74653485-99fc-43a9-b1c7-34d9c6fc47dd",
+      "faceitNickname": "Cr4mer",
+      "matchId": "1-7f63f199-dd03-4473-aeb3-8a0086c65e87",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761154259,
+      "finishedAt": 1761156240,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-7f63f199-dd03-4473-aeb3-8a0086c65e87",
+      "map": "de_nuke",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "91ecf010-8a6d-4680-8979-7b404194a8b7",
+      "faceitNickname": "faqin",
+      "matchId": "1-7f63f199-dd03-4473-aeb3-8a0086c65e87",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761154259,
+      "finishedAt": 1761156240,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-7f63f199-dd03-4473-aeb3-8a0086c65e87",
+      "map": "de_nuke",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "8e914cd4-327d-4618-8d7d-0073ca0d2a20",
+      "faceitNickname": "Black_panth",
+      "matchId": "1-7f63f199-dd03-4473-aeb3-8a0086c65e87",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761154259,
+      "finishedAt": 1761156240,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-7f63f199-dd03-4473-aeb3-8a0086c65e87",
+      "map": "de_nuke",
+      "score": {
+        "faction1": 0,
+        "faction2": 1
+      }
+    },
+    {
+      "playerId": "e919e208-f05e-4131-b529-68046fc6e8d9",
+      "faceitNickname": "KQligchris",
+      "matchId": "1-7f63f199-dd03-4473-aeb3-8a0086c65e87",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761154259,
+      "finishedAt": 1761156240,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-7f63f199-dd03-4473-aeb3-8a0086c65e87",
+      "map": "de_nuke",
+      "score": {
+        "faction1": 0,
+        "faction2": 1
+      }
+    },
+    {
+      "playerId": "89c92bc5-d48e-4581-9d13-69fc73f56036",
+      "faceitNickname": "kattepeter",
+      "matchId": "1-7f63f199-dd03-4473-aeb3-8a0086c65e87",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1761154259,
+      "finishedAt": 1761156240,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-7f63f199-dd03-4473-aeb3-8a0086c65e87",
+      "map": "de_nuke",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "59a2019b-eee4-4901-9fef-8e80d2a0ee7d",
+      "faceitNickname": "psYKENN",
+      "matchId": "1-fbf9bde4-fd11-4c11-b205-c72b1c3fbd9f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1760550564,
+      "finishedAt": 1760552986,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-fbf9bde4-fd11-4c11-b205-c72b1c3fbd9f",
+      "map": "de_inferno",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "e919e208-f05e-4131-b529-68046fc6e8d9",
+      "faceitNickname": "KQligchris",
+      "matchId": "1-fbf9bde4-fd11-4c11-b205-c72b1c3fbd9f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1760550564,
+      "finishedAt": 1760552986,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-fbf9bde4-fd11-4c11-b205-c72b1c3fbd9f",
+      "map": "de_inferno",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "89c92bc5-d48e-4581-9d13-69fc73f56036",
+      "faceitNickname": "kattepeter",
+      "matchId": "1-fbf9bde4-fd11-4c11-b205-c72b1c3fbd9f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1760550564,
+      "finishedAt": 1760552986,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-fbf9bde4-fd11-4c11-b205-c72b1c3fbd9f",
+      "map": "de_inferno",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "910aa336-b589-4e0b-b763-ac0fc9be77dc",
+      "faceitNickname": "pharty",
+      "matchId": "1-fbf9bde4-fd11-4c11-b205-c72b1c3fbd9f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1760550564,
+      "finishedAt": 1760552986,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-fbf9bde4-fd11-4c11-b205-c72b1c3fbd9f",
+      "map": "de_inferno",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "74653485-99fc-43a9-b1c7-34d9c6fc47dd",
+      "faceitNickname": "Cr4mer",
+      "matchId": "1-c0a6b401-43b7-4d82-a7fd-8a09ed595f81",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759949623,
+      "finishedAt": 1759952127,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-c0a6b401-43b7-4d82-a7fd-8a09ed595f81",
+      "map": "de_mirage",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "8e914cd4-327d-4618-8d7d-0073ca0d2a20",
+      "faceitNickname": "Black_panth",
+      "matchId": "1-c0a6b401-43b7-4d82-a7fd-8a09ed595f81",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759949623,
+      "finishedAt": 1759952127,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-c0a6b401-43b7-4d82-a7fd-8a09ed595f81",
+      "map": "de_mirage",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "59a2019b-eee4-4901-9fef-8e80d2a0ee7d",
+      "faceitNickname": "psYKENN",
+      "matchId": "1-c0a6b401-43b7-4d82-a7fd-8a09ed595f81",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759949623,
+      "finishedAt": 1759952127,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-c0a6b401-43b7-4d82-a7fd-8a09ed595f81",
+      "map": "de_mirage",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "e919e208-f05e-4131-b529-68046fc6e8d9",
+      "faceitNickname": "KQligchris",
+      "matchId": "1-c0a6b401-43b7-4d82-a7fd-8a09ed595f81",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759949623,
+      "finishedAt": 1759952127,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-c0a6b401-43b7-4d82-a7fd-8a09ed595f81",
+      "map": "de_mirage",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "910aa336-b589-4e0b-b763-ac0fc9be77dc",
+      "faceitNickname": "pharty",
+      "matchId": "1-c0a6b401-43b7-4d82-a7fd-8a09ed595f81",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759949623,
+      "finishedAt": 1759952127,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-c0a6b401-43b7-4d82-a7fd-8a09ed595f81",
+      "map": "de_mirage",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "74653485-99fc-43a9-b1c7-34d9c6fc47dd",
+      "faceitNickname": "Cr4mer",
+      "matchId": "1-32cd897e-4798-4c89-9b8d-e5686b7e9a5c",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759947564,
+      "finishedAt": 1759949187,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-32cd897e-4798-4c89-9b8d-e5686b7e9a5c",
+      "map": "de_overpass",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "8e914cd4-327d-4618-8d7d-0073ca0d2a20",
+      "faceitNickname": "Black_panth",
+      "matchId": "1-32cd897e-4798-4c89-9b8d-e5686b7e9a5c",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759947564,
+      "finishedAt": 1759949187,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-32cd897e-4798-4c89-9b8d-e5686b7e9a5c",
+      "map": "de_overpass",
+      "score": {
+        "faction1": 0,
+        "faction2": 1
+      }
+    },
+    {
+      "playerId": "59a2019b-eee4-4901-9fef-8e80d2a0ee7d",
+      "faceitNickname": "psYKENN",
+      "matchId": "1-32cd897e-4798-4c89-9b8d-e5686b7e9a5c",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759947564,
+      "finishedAt": 1759949187,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-32cd897e-4798-4c89-9b8d-e5686b7e9a5c",
+      "map": "de_overpass",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "e919e208-f05e-4131-b529-68046fc6e8d9",
+      "faceitNickname": "KQligchris",
+      "matchId": "1-32cd897e-4798-4c89-9b8d-e5686b7e9a5c",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759947564,
+      "finishedAt": 1759949187,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-32cd897e-4798-4c89-9b8d-e5686b7e9a5c",
+      "map": "de_overpass",
+      "score": {
+        "faction1": 0,
+        "faction2": 1
+      }
+    },
+    {
+      "playerId": "910aa336-b589-4e0b-b763-ac0fc9be77dc",
+      "faceitNickname": "pharty",
+      "matchId": "1-32cd897e-4798-4c89-9b8d-e5686b7e9a5c",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759947564,
+      "finishedAt": 1759949187,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-32cd897e-4798-4c89-9b8d-e5686b7e9a5c",
+      "map": "de_overpass",
+      "score": {
+        "faction1": 0,
+        "faction2": 1
+      }
+    },
+    {
+      "playerId": "74653485-99fc-43a9-b1c7-34d9c6fc47dd",
+      "faceitNickname": "Cr4mer",
+      "matchId": "1-aa287a69-4a5a-4060-af20-73004dc4e4f0",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759944456,
+      "finishedAt": 1759946975,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-aa287a69-4a5a-4060-af20-73004dc4e4f0",
+      "map": "de_inferno",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "8e914cd4-327d-4618-8d7d-0073ca0d2a20",
+      "faceitNickname": "Black_panth",
+      "matchId": "1-aa287a69-4a5a-4060-af20-73004dc4e4f0",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759944456,
+      "finishedAt": 1759946975,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-aa287a69-4a5a-4060-af20-73004dc4e4f0",
+      "map": "de_inferno",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "59a2019b-eee4-4901-9fef-8e80d2a0ee7d",
+      "faceitNickname": "psYKENN",
+      "matchId": "1-aa287a69-4a5a-4060-af20-73004dc4e4f0",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759944456,
+      "finishedAt": 1759946975,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-aa287a69-4a5a-4060-af20-73004dc4e4f0",
+      "map": "de_inferno",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "e919e208-f05e-4131-b529-68046fc6e8d9",
+      "faceitNickname": "KQligchris",
+      "matchId": "1-aa287a69-4a5a-4060-af20-73004dc4e4f0",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759944456,
+      "finishedAt": 1759946975,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-aa287a69-4a5a-4060-af20-73004dc4e4f0",
+      "map": "de_inferno",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "910aa336-b589-4e0b-b763-ac0fc9be77dc",
+      "faceitNickname": "pharty",
+      "matchId": "1-aa287a69-4a5a-4060-af20-73004dc4e4f0",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759944456,
+      "finishedAt": 1759946975,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-aa287a69-4a5a-4060-af20-73004dc4e4f0",
+      "map": "de_inferno",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "91ecf010-8a6d-4680-8979-7b404194a8b7",
+      "faceitNickname": "faqin",
+      "matchId": "1-2b176d76-1997-455b-8128-9c13417f88ea",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759689309,
+      "finishedAt": 1759691861,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-2b176d76-1997-455b-8128-9c13417f88ea",
+      "map": "de_mirage",
+      "score": {
+        "faction2": 0,
+        "faction1": 1
+      }
+    },
+    {
+      "playerId": "89c92bc5-d48e-4581-9d13-69fc73f56036",
+      "faceitNickname": "kattepeter",
+      "matchId": "1-2b176d76-1997-455b-8128-9c13417f88ea",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759689309,
+      "finishedAt": 1759691861,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-2b176d76-1997-455b-8128-9c13417f88ea",
+      "map": "de_mirage",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "910aa336-b589-4e0b-b763-ac0fc9be77dc",
+      "faceitNickname": "pharty",
+      "matchId": "1-2b176d76-1997-455b-8128-9c13417f88ea",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759689309,
+      "finishedAt": 1759691861,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-2b176d76-1997-455b-8128-9c13417f88ea",
+      "map": "de_mirage",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "91ecf010-8a6d-4680-8979-7b404194a8b7",
+      "faceitNickname": "faqin",
+      "matchId": "1-69a65070-034e-438e-93d6-4b560143f32e",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759687162,
+      "finishedAt": 1759689100,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-69a65070-034e-438e-93d6-4b560143f32e",
+      "map": "de_nuke",
+      "score": {
+        "faction2": 0,
+        "faction1": 1
+      }
+    },
+    {
+      "playerId": "89c92bc5-d48e-4581-9d13-69fc73f56036",
+      "faceitNickname": "kattepeter",
+      "matchId": "1-69a65070-034e-438e-93d6-4b560143f32e",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759687162,
+      "finishedAt": 1759689100,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-69a65070-034e-438e-93d6-4b560143f32e",
+      "map": "de_nuke",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "910aa336-b589-4e0b-b763-ac0fc9be77dc",
+      "faceitNickname": "pharty",
+      "matchId": "1-69a65070-034e-438e-93d6-4b560143f32e",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759687162,
+      "finishedAt": 1759689100,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-69a65070-034e-438e-93d6-4b560143f32e",
+      "map": "de_nuke",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "74653485-99fc-43a9-b1c7-34d9c6fc47dd",
+      "faceitNickname": "Cr4mer",
+      "matchId": "1-150f8ac7-bf68-4894-8723-f7067419cb9f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759339987,
+      "finishedAt": 1759342436,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-150f8ac7-bf68-4894-8723-f7067419cb9f",
+      "map": "de_dust2",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "91ecf010-8a6d-4680-8979-7b404194a8b7",
+      "faceitNickname": "faqin",
+      "matchId": "1-150f8ac7-bf68-4894-8723-f7067419cb9f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759339987,
+      "finishedAt": 1759342436,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-150f8ac7-bf68-4894-8723-f7067419cb9f",
+      "map": "de_dust2",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "59a2019b-eee4-4901-9fef-8e80d2a0ee7d",
+      "faceitNickname": "psYKENN",
+      "matchId": "1-150f8ac7-bf68-4894-8723-f7067419cb9f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759339987,
+      "finishedAt": 1759342436,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-150f8ac7-bf68-4894-8723-f7067419cb9f",
+      "map": "de_dust2",
+      "score": {
+        "faction1": 0,
+        "faction2": 1
+      }
+    },
+    {
+      "playerId": "89c92bc5-d48e-4581-9d13-69fc73f56036",
+      "faceitNickname": "kattepeter",
+      "matchId": "1-150f8ac7-bf68-4894-8723-f7067419cb9f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759339987,
+      "finishedAt": 1759342436,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-150f8ac7-bf68-4894-8723-f7067419cb9f",
+      "map": "de_dust2",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "910aa336-b589-4e0b-b763-ac0fc9be77dc",
+      "faceitNickname": "pharty",
+      "matchId": "1-150f8ac7-bf68-4894-8723-f7067419cb9f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759339987,
+      "finishedAt": 1759342436,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-150f8ac7-bf68-4894-8723-f7067419cb9f",
+      "map": "de_dust2",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "74653485-99fc-43a9-b1c7-34d9c6fc47dd",
+      "faceitNickname": "Cr4mer",
+      "matchId": "1-f6907d25-6a78-46aa-85db-9a8def6fe79f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759083633,
+      "finishedAt": 1759085436,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-f6907d25-6a78-46aa-85db-9a8def6fe79f",
+      "map": "de_ancient",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "91ecf010-8a6d-4680-8979-7b404194a8b7",
+      "faceitNickname": "faqin",
+      "matchId": "1-f6907d25-6a78-46aa-85db-9a8def6fe79f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759083633,
+      "finishedAt": 1759085436,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-f6907d25-6a78-46aa-85db-9a8def6fe79f",
+      "map": "de_ancient",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "59a2019b-eee4-4901-9fef-8e80d2a0ee7d",
+      "faceitNickname": "psYKENN",
+      "matchId": "1-f6907d25-6a78-46aa-85db-9a8def6fe79f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759083633,
+      "finishedAt": 1759085436,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-f6907d25-6a78-46aa-85db-9a8def6fe79f",
+      "map": "de_ancient",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "89c92bc5-d48e-4581-9d13-69fc73f56036",
+      "faceitNickname": "kattepeter",
+      "matchId": "1-f6907d25-6a78-46aa-85db-9a8def6fe79f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759083633,
+      "finishedAt": 1759085436,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-f6907d25-6a78-46aa-85db-9a8def6fe79f",
+      "map": "de_ancient",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "910aa336-b589-4e0b-b763-ac0fc9be77dc",
+      "faceitNickname": "pharty",
+      "matchId": "1-f6907d25-6a78-46aa-85db-9a8def6fe79f",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759083633,
+      "finishedAt": 1759085436,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-f6907d25-6a78-46aa-85db-9a8def6fe79f",
+      "map": "de_ancient",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "74653485-99fc-43a9-b1c7-34d9c6fc47dd",
+      "faceitNickname": "Cr4mer",
+      "matchId": "1-6384928e-08ce-475a-b47b-f07c71c2804d",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759080902,
+      "finishedAt": 1759083281,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-6384928e-08ce-475a-b47b-f07c71c2804d",
+      "map": "de_dust2",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "91ecf010-8a6d-4680-8979-7b404194a8b7",
+      "faceitNickname": "faqin",
+      "matchId": "1-6384928e-08ce-475a-b47b-f07c71c2804d",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759080902,
+      "finishedAt": 1759083281,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-6384928e-08ce-475a-b47b-f07c71c2804d",
+      "map": "de_dust2",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "59a2019b-eee4-4901-9fef-8e80d2a0ee7d",
+      "faceitNickname": "psYKENN",
+      "matchId": "1-6384928e-08ce-475a-b47b-f07c71c2804d",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759080902,
+      "finishedAt": 1759083281,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-6384928e-08ce-475a-b47b-f07c71c2804d",
+      "map": "de_dust2",
+      "score": {
+        "faction2": 0,
+        "faction1": 1
+      }
+    },
+    {
+      "playerId": "89c92bc5-d48e-4581-9d13-69fc73f56036",
+      "faceitNickname": "kattepeter",
+      "matchId": "1-6384928e-08ce-475a-b47b-f07c71c2804d",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1759080902,
+      "finishedAt": 1759083281,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-6384928e-08ce-475a-b47b-f07c71c2804d",
+      "map": "de_dust2",
+      "score": {
+        "faction2": 0,
+        "faction1": 1
+      }
+    },
+    {
+      "playerId": "59a2019b-eee4-4901-9fef-8e80d2a0ee7d",
+      "faceitNickname": "psYKENN",
+      "matchId": "1-e97e6a79-bfcb-473e-b8e6-80badac2d940",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758998686,
+      "finishedAt": 1759000528,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-e97e6a79-bfcb-473e-b8e6-80badac2d940",
+      "map": "de_ancient",
+      "score": {
+        "faction2": 0,
+        "faction1": 1
+      }
+    },
+    {
+      "playerId": "91ecf010-8a6d-4680-8979-7b404194a8b7",
+      "faceitNickname": "faqin",
+      "matchId": "1-e426f6dd-2869-44d4-bcb0-a650e5f112ae",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758995218,
+      "finishedAt": 1758997584,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-e426f6dd-2869-44d4-bcb0-a650e5f112ae",
+      "map": "de_dust2",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "74653485-99fc-43a9-b1c7-34d9c6fc47dd",
+      "faceitNickname": "Cr4mer",
+      "matchId": "1-378e8700-f83a-4da1-8b28-35d0cb1268a3",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758739125,
+      "finishedAt": 1758741526,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-378e8700-f83a-4da1-8b28-35d0cb1268a3",
+      "map": "de_inferno",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "91ecf010-8a6d-4680-8979-7b404194a8b7",
+      "faceitNickname": "faqin",
+      "matchId": "1-378e8700-f83a-4da1-8b28-35d0cb1268a3",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758739125,
+      "finishedAt": 1758741526,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-378e8700-f83a-4da1-8b28-35d0cb1268a3",
+      "map": "de_inferno",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "e919e208-f05e-4131-b529-68046fc6e8d9",
+      "faceitNickname": "KQligchris",
+      "matchId": "1-378e8700-f83a-4da1-8b28-35d0cb1268a3",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758739125,
+      "finishedAt": 1758741526,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-378e8700-f83a-4da1-8b28-35d0cb1268a3",
+      "map": "de_inferno",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "e919e208-f05e-4131-b529-68046fc6e8d9",
+      "faceitNickname": "KQligchris",
+      "matchId": "1-f7447a2b-d2fa-4857-b09d-c4b918ee01cc",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758736840,
+      "finishedAt": 1758738593,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-f7447a2b-d2fa-4857-b09d-c4b918ee01cc",
+      "map": "de_nuke",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "e919e208-f05e-4131-b529-68046fc6e8d9",
+      "faceitNickname": "KQligchris",
+      "matchId": "1-9f1dedb5-112d-4453-a90f-dca6963bc4e5",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758710794,
+      "finishedAt": 1758712775,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-9f1dedb5-112d-4453-a90f-dca6963bc4e5",
+      "map": "de_mirage",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "e919e208-f05e-4131-b529-68046fc6e8d9",
+      "faceitNickname": "KQligchris",
+      "matchId": "1-b1ea761c-a481-4eee-90aa-1ede2a450a18",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758700086,
+      "finishedAt": 1758702392,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-b1ea761c-a481-4eee-90aa-1ede2a450a18",
+      "map": "de_train",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "e919e208-f05e-4131-b529-68046fc6e8d9",
+      "faceitNickname": "KQligchris",
+      "matchId": "1-0d5981b0-4a62-4938-8679-d727d74ec955",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758563320,
+      "finishedAt": 1758565430,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-0d5981b0-4a62-4938-8679-d727d74ec955",
+      "map": "de_dust2",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "89c92bc5-d48e-4581-9d13-69fc73f56036",
+      "faceitNickname": "kattepeter",
+      "matchId": "1-afd49601-5c6b-4487-a93a-b08778f2c8da",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758479211,
+      "finishedAt": 1758482331,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-afd49601-5c6b-4487-a93a-b08778f2c8da",
+      "map": "de_nuke",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "89c92bc5-d48e-4581-9d13-69fc73f56036",
+      "faceitNickname": "kattepeter",
+      "matchId": "1-53fc25a9-780d-4bc8-ad55-d8f3fb98783c",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758476372,
+      "finishedAt": 1758478639,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-53fc25a9-780d-4bc8-ad55-d8f3fb98783c",
+      "map": "de_ancient",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "89c92bc5-d48e-4581-9d13-69fc73f56036",
+      "faceitNickname": "kattepeter",
+      "matchId": "1-684b14eb-0fa7-474a-8359-d6e0e8acdef7",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758309507,
+      "finishedAt": 1758311940,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-684b14eb-0fa7-474a-8359-d6e0e8acdef7",
+      "map": "de_nuke",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "8e914cd4-327d-4618-8d7d-0073ca0d2a20",
+      "faceitNickname": "Black_panth",
+      "matchId": "1-3c34c90b-0820-458c-8d72-ed20eb4c6aef",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758135795,
+      "finishedAt": 1758137305,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-3c34c90b-0820-458c-8d72-ed20eb4c6aef",
+      "map": "de_overpass",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "8e914cd4-327d-4618-8d7d-0073ca0d2a20",
+      "faceitNickname": "Black_panth",
+      "matchId": "1-9c9d015f-5d84-4574-84a0-ed5fb3481735",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758132602,
+      "finishedAt": 1758135268,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-9c9d015f-5d84-4574-84a0-ed5fb3481735",
+      "map": "de_dust2",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    },
+    {
+      "playerId": "8e914cd4-327d-4618-8d7d-0073ca0d2a20",
+      "faceitNickname": "Black_panth",
+      "matchId": "1-e56ec39a-dce0-47cf-ada9-f12b46a80294",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1758130446,
+      "finishedAt": 1758132228,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-e56ec39a-dce0-47cf-ada9-f12b46a80294",
+      "map": "de_nuke",
+      "score": {
+        "faction1": 1,
+        "faction2": 0
+      }
+    },
+    {
+      "playerId": "8e914cd4-327d-4618-8d7d-0073ca0d2a20",
+      "faceitNickname": "Black_panth",
+      "matchId": "1-4a529ef5-c409-4abc-a5bf-708272df170d",
+      "gameMode": "5v5",
+      "region": "EU",
+      "startedAt": 1757618261,
+      "finishedAt": 1757620174,
+      "teamsSize": 5,
+      "urlRoom": "https://www.faceit.com/en/cs2/room/1-4a529ef5-c409-4abc-a5bf-708272df170d",
+      "map": "de_dust2",
+      "score": {
+        "faction2": 1,
+        "faction1": 0
+      }
+    }
+  ]
+}

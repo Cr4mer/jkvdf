@@ -32,6 +32,12 @@ const (
 	allTimeLimit      = 20
 )
 
+const (
+    ...
+    demoDownloadMaxAttempts = 5
+    demoDownloadBaseDelay   = time.Second
+)
+
 var httpClient = &http.Client{Timeout: 2 * time.Minute}
 
 type playerConfig struct {
@@ -411,40 +417,54 @@ func extractDemoAndMap(details *faceitMatchDetails, base matchEntry) (string, st
 }
 
 func downloadDemo(matchID, url string) (string, error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return "", err
-	}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		return "", fmt.Errorf("demo download %d: %s", resp.StatusCode, string(body))
-	}
-	defer resp.Body.Close()
+	var lastErr error
 
-	tmpFile, err := os.CreateTemp("", fmt.Sprintf("%s-*.dem", matchID))
-	if err != nil {
-		return "", err
-	}
-	defer tmpFile.Close()
-
-	var reader io.Reader = resp.Body
-	if strings.HasSuffix(strings.ToLower(url), ".gz") || strings.Contains(resp.Header.Get("Content-Type"), "gzip") {
-		gzReader, err := gzip.NewReader(resp.Body)
+	for attempt := 1; attempt <= demoDownloadMaxAttempts; attempt++ {
+		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
-			return "", fmt.Errorf("gzip reader: %w", err)
+			return "", err
 		}
-		defer gzReader.Close()
-		reader = gzReader
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			lastErr = err
+		} else if resp.StatusCode >= 400 {
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			lastErr = fmt.Errorf("demo download %d: %s", resp.StatusCode, string(body))
+		} else {
+			defer resp.Body.Close()
+
+			tmpFile, err := os.CreateTemp("", fmt.Sprintf("%s-*.dem", matchID))
+			if err != nil {
+				return "", err
+			}
+			defer tmpFile.Close()
+
+			reader := io.Reader(resp.Body)
+			if strings.HasSuffix(strings.ToLower(url), ".gz") || strings.Contains(resp.Header.Get("Content-Type"), "gzip") {
+				gzReader, err := gzip.NewReader(resp.Body)
+				if err != nil {
+					return "", fmt.Errorf("gzip reader: %w", err)
+				}
+				defer gzReader.Close()
+				reader = gzReader
+			}
+
+			if _, err := io.Copy(tmpFile, reader); err != nil {
+				return "", fmt.Errorf("write demo: %w", err)
+			}
+			return tmpFile.Name(), nil
+		}
+
+		if attempt < demoDownloadMaxAttempts {
+			backoff := demoDownloadBaseDelay * time.Duration(attempt*attempt)
+			log.Printf("  download failed (attempt %d/%d): %v – retrying in %s", attempt, demoDownloadMaxAttempts, lastErr, backoff)
+			time.Sleep(backoff)
+		}
 	}
-	if _, err := io.Copy(tmpFile, reader); err != nil {
-		return "", fmt.Errorf("write demo: %w", err)
-	}
-	return tmpFile.Name(), nil
+
+	return "", fmt.Errorf("download failed after %d attempts: %w", demoDownloadMaxAttempts, lastErr)
 }
 
 func parseDemoForHighlights(demoPath string, group *groupedMatch, tracked map[uint64]playerInfo, demoURL string) ([]highlight, error) {

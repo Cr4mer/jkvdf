@@ -45,13 +45,20 @@ jobs:
 
       - name: Commit changes
         run: |
-          if [[ -n "$(git status --porcelain)" ]]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add data/matches.json data/state.json data/highlights.json data/leaderboards.json parser/go.mod parser/go.sum
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git status --short
+          files=""
+          for f in data/matches.json data/state.json data/highlights.json data/leaderboards.json parser/go.mod parser/go.sum; do
+            if [[ -f "$f" ]]; then
+              git add "$f"
+              files="yes"
+            fi
+          done
+          if [[ "$files" == "yes" && -n "$(git status --porcelain)" ]]; then
             git commit -m "chore(pipeline): update data files"
             git pull --rebase origin main
             git push
           else
-            echo "No changes to commit"
+            echo "No tracked files to commit"
           fi

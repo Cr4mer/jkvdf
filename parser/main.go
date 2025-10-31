@@ -87,7 +87,7 @@ type matchEntry struct {
 	FaceitNickname string `json:"faceitNickname"`
 	MatchID        string `json:"matchId"`
 	GameMode       string `json:"gameMode"`
-	Region         string `json:"region"`
+	Region         string `json:`json:"region"`
 	StartedAt      int64  `json:"startedAt"`
 	FinishedAt     int64  `json:"finishedAt"`
 	TeamsSize      int    `json:"teamsSize"`
@@ -463,7 +463,6 @@ func getSignedDemoURL(resource string) (string, error) {
 	if faceitAPIKey == "" {
 		return resource, fmt.Errorf("FACEIT_API_KEY not initialized")
 	}
-
 	payload := strings.NewReader(fmt.Sprintf(`{"type":"demo","resource":"%s"}`, resource))
 	req, err := http.NewRequest("POST", "https://open.faceit.com/data/v4/downloads", payload)
 	if err != nil {
@@ -487,11 +486,9 @@ func getSignedDemoURL(resource string) (string, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
 		return resource, err
 	}
-
 	if decoded.Payload.DownloadURL == "" {
 		return resource, fmt.Errorf("downloads API returned empty download_url")
 	}
-
 	return decoded.Payload.DownloadURL, nil
 }
 
@@ -504,7 +501,6 @@ func downloadDemo(matchID, url string) (string, error) {
 	}
 
 	var lastErr error
-
 	for attempt := 1; attempt <= demoDownloadMaxAttempts; attempt++ {
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
@@ -673,4 +669,188 @@ func parseDemoForHighlights(demoPath string, group *groupedMatch, tracked map[ui
 		h := highlight{
 			ID:               fmt.Sprintf("%s:%s", group.MatchID, info.PlayerID),
 			MatchID:          group.MatchID,
-			PlayerID
+			PlayerID:         info.PlayerID,
+			FaceitNickname:   info.FaceitNickname,
+			Map:              mapName,
+			Round:            candidate.Round,
+			TickStart:        clampInt(candidate.TickStart, 0),
+			TickEnd:          candidate.TickEnd,
+			TimeStartSeconds: clampFloat(candidate.TimeStartSeconds, 0),
+			TimeEndSeconds:   candidate.TimeEndSeconds,
+			Kills:            candidate.Kills,
+			Headshots:        candidate.Headshots,
+			Score:            candidate.Score,
+			Category:         candidate.Category,
+			Description:      fmt.Sprintf("%s %s", info.FaceitNickname, candidate.Description),
+			MatchFinishedAt:  matchFinished,
+			RecordedAt:       now,
+			DemoURL:          demoURL,
+			ClipURL:          "",
+			SteamID:          info.SteamID,
+			SteamID64:        strconv.FormatUint(info.SteamID64, 10),
+		}
+		results = append(results, h)
+	}
+
+	return results, nil
+}
+
+func scoreForState(state multiState) float64 {
+	base := float64(state.count) * 100.0
+	headshotBonus := float64(state.headshots) * 25.0
+	streakBonus := math.Pow(1.1, float64(state.count-2)) * 50.0
+	return base + headshotBonus + streakBonus
+}
+
+func clampFloat(v, min float64) float64 {
+	if v < min {
+		return min
+	}
+	return v
+}
+
+func clampInt(v, min int) int {
+	if v < min {
+		return min
+	}
+	return v
+}
+
+func mergeHighlights(existing, newOnes []highlight) []highlight {
+	index := make(map[string]highlight, len(existing)+len(newOnes))
+	for _, h := range existing {
+		if h.ID != "" {
+			index[h.ID] = h
+		}
+	}
+	for _, h := range newOnes {
+		if h.ID != "" {
+			index[h.ID] = h
+		}
+	}
+	result := make([]highlight, 0, len(index))
+	for _, h := range index {
+		result = append(result, h)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		ti := parseTime(result[i].MatchFinishedAt)
+		tj := parseTime(result[j].MatchFinishedAt)
+		if ti.Equal(tj) {
+			return result[i].Score > result[j].Score
+		}
+		return ti.After(tj)
+	})
+	if len(result) > maxHighlightsKeep {
+		result = result[:maxHighlightsKeep]
+	}
+	return result
+}
+
+func buildLeaderboards(highlights []highlight) leaderboards {
+	perPlayer := make(map[string][]highlight)
+	for _, h := range highlights {
+		perPlayer[h.PlayerID] = append(perPlayer[h.PlayerID], h)
+	}
+
+	lastGame := []highlight{}
+	last10 := []highlight{}
+
+	for _, list := range perPlayer {
+		sort.Slice(list, func(i, j int) bool {
+			ti := parseTime(list[i].MatchFinishedAt)
+			tj := parseTime(list[j].MatchFinishedAt)
+			if ti.Equal(tj) {
+			return list[i].Score > list[j].Score
+			}
+			return ti.After(tj)
+		})
+		if len(list) > 0 {
+			lastGame = append(lastGame, list[0])
+		}
+
+		limit := 10
+		if len(list) < limit {
+			limit = len(list)
+		}
+		if limit > 0 {
+			best := list[0]
+			for i := 0; i < limit; i++ {
+			if list[i].Score > best.Score {
+				best = list[i]
+			}
+		}
+			last10 = append(last10, best)
+		}
+	}
+
+	sort.Slice(lastGame, func(i, j int) bool {
+		return strings.ToLower(lastGame[i].FaceitNickname) < strings.ToLower(lastGame[j].FaceitNickname)
+	})
+	sort.Slice(last10, func(i, j int) bool {
+		return strings.ToLower(last10[i].FaceitNickname) < strings.ToLower(last10[j].FaceitNickname)
+	})
+
+	allTime := make([]highlight, len(highlights))
+	copy(allTime, highlights)
+	sort.Slice(allTime, func(i, j int) bool {
+		if allTime[i].Score == allTime[j].Score {
+			return parseTime(allTime[i].MatchFinishedAt).After(parseTime(allTime[j].MatchFinishedAt))
+		}
+		return allTime[i].Score > allTime[j].Score
+	})
+	if len(allTime) > allTimeLimit {
+		allTime = allTime[:allTimeLimit]
+	}
+
+	return leaderboards{
+		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
+		LastGame:    lastGame,
+		Last10:      last10,
+		AllTimeTop:  allTime,
+	}
+}
+
+func toMatchTime(ts int64) string {
+	if ts <= 0 {
+		return time.Now().UTC().Format(time.RFC3339)
+	}
+	return time.Unix(ts, 0).UTC().Format(time.RFC3339)
+}
+
+func parseTime(value string) time.Time {
+	if value == "" {
+		return time.Unix(0, 0)
+	}
+	t, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return time.Unix(0, 0)
+	}
+	return t
+}
+
+func steamTo64(input string) (uint64, error) {
+	input = strings.TrimSpace(strings.ToUpper(input))
+	if input == "" {
+		return 0, fmt.Errorf("empty steam id")
+	}
+	if strings.HasPrefix(input, "STEAM_") {
+		body := strings.TrimPrefix(input, "STEAM_")
+		parts := strings.Split(body, ":")
+		if len(parts) != 3 {
+			return 0, fmt.Errorf("invalid steam format %s", input)
+		}
+		y, err := strconv.ParseUint(parts[1], 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		z, err := strconv.ParseUint(parts[2], 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		return 76561197960265728 + z*2 + y, nil
+	}
+	if strings.HasPrefix(input, "7656") {
+		return strconv.ParseUint(input, 10, 64)
+	}
+	return strconv.ParseUint(input, 10, 64)
+}

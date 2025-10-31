@@ -30,12 +30,9 @@ const (
 	killGapSeconds    = 7.0
 	maxHighlightsKeep = 500
 	allTimeLimit      = 20
-)
 
-const (
-    ...
-    demoDownloadMaxAttempts = 5
-    demoDownloadBaseDelay   = time.Second
+	demoDownloadMaxAttempts = 5
+	demoDownloadBaseDelay   = time.Second
 )
 
 var httpClient = &http.Client{Timeout: 2 * time.Minute}

@@ -39,11 +39,19 @@ const (
 )
 
 var resolver = &net.Resolver{
-	PreferGo: true,
-	Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-		d := net.Dialer{}
-		return d.DialContext(ctx, network, "8.8.8.8:53")
-	},
+    PreferGo: true,
+    Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+        d := net.Dialer{}
+        return d.DialContext(ctx, network, "8.8.8.8:53")
+    },
+}
+
+func init() {
+    net.DefaultResolver = resolver
+}
+
+func init() {
+	net.DefaultResolver = resolver
 }
 
 var httpClient = &http.Client{

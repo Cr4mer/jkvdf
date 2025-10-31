@@ -426,7 +426,7 @@ func downloadDemo(matchID, url string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	tmpFile, err := os.CreateTemp("", fmt.Sprintf("%s-*.dem"), matchID)
+	tmpFile, err := os.CreateTemp("", fmt.Sprintf("%s-*.dem", matchID))
 	if err != nil {
 		return "", err
 	}
@@ -488,10 +488,13 @@ func parseDemoForHighlights(demoPath string, group *groupedMatch, tracked map[ui
 			return
 		}
 		steamID := e.Killer.SteamID64
-		info, ok := tracked[steamID]
-		if !ok {
-			return
-		}
+-		info, ok := tracked[steamID]
+-		if !ok {
+-			return
+-		}
++		if _, ok := tracked[steamID]; !ok {
++			return
++		}
 
 		tick := parser.GameState().IngameTick()
 		state := multiStates[steamID]

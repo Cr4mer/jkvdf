@@ -475,10 +475,6 @@ func parseDemoForHighlights(demoPath string, group *groupedMatch, tracked map[ui
 	candidates := make(map[uint64]highlightCandidate)
 	currentRound := 0
 
-	parser.RegisterEventHandler(func(e events.MatchStarted) {
-		currentRound = 0
-	})
-
 	parser.RegisterEventHandler(func(e events.RoundStart) {
 		currentRound++
 		multiStates = make(map[uint64]multiState)

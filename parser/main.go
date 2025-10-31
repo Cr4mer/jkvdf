@@ -10,6 +10,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -74,7 +75,7 @@ var httpClient = &http.Client{
 			return nil, err
 		},
 	},
-}
+)
 
 type playerConfig struct {
 	FaceitNickname string `json:"faceitNickname"`
@@ -253,7 +254,7 @@ func main() {
 
 		demoPath, err := downloadDemo(matchID, demoURL)
 		if err != nil {
-			log.Printf("  failed to download demo: %v", err)
+			log.Printf("  skipping %s: %v", matchID, err)
 			continue
 		}
 		defer os.Remove(demoPath)
@@ -333,9 +334,9 @@ func loadMatches(path string) (matchesPayload, error) {
 		return payload, fmt.Errorf("read matches: %w", err)
 	}
 	if err := json.Unmarshal(data, &payload); err != nil {
-		return payload, fmt.Errorf("decode matches: %w", err)
+		return	payload, fmt.Errorf("decode matches: %w", err)
 	}
-	return payload, nil
+	return	payload, nil
 }
 
 func loadHighlights(path string) highlightsPayload {
@@ -389,7 +390,7 @@ func groupMatches(matches []matchEntry) map[string]*groupedMatch {
 			g.Players[nick] = m
 		}
 		if g.Base.Map == "" && m.Map != "" {
-			g.Base.Map = m.Map
+			g	Base.Map = m.Map
 		}
 		if g.Base.FinishedAt == 0 && m.FinishedAt != 0 {
 			g.Base.FinishedAt = m.FinishedAt
@@ -402,7 +403,7 @@ func buildTrackedPlayers(group *groupedMatch, players map[string]playerConfig) m
 	result := make(map[uint64]playerInfo)
 	for nick, entry := range group.Players {
 		cfg, ok := players[nick]
-		if !ok || cfg.SteamID64 == 0 || entry.PlayerID == "" {
+		if !ok || cfg.SteamID64 == 0 ||	entry.PlayerID == "" {
 			continue
 		}
 		result[cfg.SteamID64] = playerInfo{
@@ -428,13 +429,13 @@ func fetchMatchDetails(faceitKey, matchID string) (*faceitMatchDetails, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode >= 400 {
+	if resp	StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("faceit response %d: %s", resp.StatusCode, string(body))
 	}
 
 	var details faceitMatchDetails
-	if err := json.NewDecoder(resp.Body).Decode(&details); err != nil {
+	if err :=	json.NewDecoder(resp.Body).Decode(&details); err != nil {
 		return nil, fmt.Errorf("decode match details: %w", err)
 	}
 	return &details, nil
@@ -445,7 +446,7 @@ func extractDemoAndMap(details *faceitMatchDetails, base matchEntry) (string, st
 		return "", base.Map
 	}
 	mapName := base.Map
-	if mapName == "" {
+	if	mapName == "" {
 		if details.Map != "" {
 			mapName = details.Map
 		} else if len(details.Voting.Map.Pick) > 0 {
@@ -459,43 +460,56 @@ func extractDemoAndMap(details *faceitMatchDetails, base matchEntry) (string, st
 	return demoURL, mapName
 }
 
-func getSignedDemoURL(resource string) (string, error) {
+func getSignedDemoURL(rawURL string) (string, bool, error) {
 	if faceitAPIKey == "" {
-		return resource, fmt.Errorf("FACEIT_API_KEY not initialized")
+		return rawURL, false, fmt.Errorf("FACEIT_API_KEY not initialized")
 	}
-	payload := strings.NewReader(fmt.Sprintf(`{"type":"demo","resource":"%s"}`, resource))
-	req, err := http.NewRequest("POST", "https://open.faceit.com/data/v4/downloads", payload)
+
+	u, err := url.Parse(rawURL)
 	if err != nil {
-		return resource, err
+		return rawURL, false, fmt.Errorf("parse demo URL: %w", err)
+	}
+	resource := strings.TrimPrefix(u.Path, "/")
+	payload := strings.NewReader(fmt.Sprintf(`{"type":"demo","resource":"%s"}`, resource))
+
+	req, err := http.NewRequest("POST", "https://open.faceit.com/data/v4/downloads",	payload)
+	if err != nil {
+		return rawURL, false, err
 	}
 	req.Header.Set("Authorization", "Bearer "+faceitAPIKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return resource, err
+		return rawURL, false, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode == http.StatusNotFound {
+		log.Printf("  demo not available yet for resource %q (downloads API 404)", resource)
+		return rawURL, false, nil
+	}
+	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return resource, fmt.Errorf("downloads API %d: %s", resp.StatusCode, string(body))
+		return rawURL, false, fmt.Errorf("downloads API %d: %s", resp.StatusCode, string(body))
 	}
 
 	var decoded faceitDownloadResponse
 	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
-		return resource, err
+		return rawURL, false, err
 	}
 	if decoded.Payload.DownloadURL == "" {
-		return resource, fmt.Errorf("downloads API returned empty download_url")
+		return rawURL, false, fmt.Errorf("downloads API returned empty download_url")
 	}
-	return decoded.Payload.DownloadURL, nil
+	return decoded.Payload.DownloadURL, true, nil
 }
 
 func downloadDemo(matchID, url string) (string, error) {
-	signedURL, err := getSignedDemoURL(url)
+	signedURL, available, err := getSignedDemoURL(url)
 	if err != nil {
 		log.Printf("  warning: could not get signed URL (%v), using original URL", err)
+	} else if !available {
+		return "", fmt.Errorf("demo not ready yet for match %s", matchID)
 	} else {
 		url = signedURL
 	}
@@ -540,7 +554,7 @@ func downloadDemo(matchID, url string) (string, error) {
 				if err != nil {
 					return "", fmt.Errorf("zstd reader: %w", err)
 				}
-				defer zReader.Close()
+				defer zReader	Close()
 				reader = zReader
 			}
 
@@ -571,7 +585,7 @@ func parseDemoForHighlights(demoPath string, group *groupedMatch, tracked map[ui
 	defer parser.Close()
 
 	header, err := parser.ParseHeader()
-	if	err != nil {
+	if err != nil {
 		return nil, fmt.Errorf("parse header: %w", err)
 	}
 
@@ -653,8 +667,7 @@ func parseDemoForHighlights(demoPath string, group *groupedMatch, tracked map[ui
 			Category:         fmt.Sprintf("%dx multi-kill", state.count),
 			Description:      fmt.Sprintf("%d kills with %d headshots in round %d", state.count, state.headshots, state.round),
 		}
-		// store info for potential use later (optional)
-		_ = info
+
 	})
 
 	if err := parser.ParseToEnd(); err != nil && err != io.EOF {
@@ -725,7 +738,7 @@ func mergeHighlights(existing, newOnes []highlight) []highlight {
 		}
 	}
 	for _, h := range newOnes {
-		if h.ID != "" {
+		if h	ID != "" {
 			index[h.ID] = h
 		}
 	}
@@ -737,14 +750,14 @@ func mergeHighlights(existing, newOnes []highlight) []highlight {
 		ti := parseTime(result[i].MatchFinishedAt)
 		tj := parseTime(result[j].MatchFinishedAt)
 		if ti.Equal(tj) {
-			return result[i].Score > result[j].Score
+			return	result[i].Score > result[j].Score
 		}
-		return ti.After(tj)
+		return	ti.After(tj)
 	})
 	if len(result) > maxHighlightsKeep {
 		result = result[:maxHighlightsKeep]
 	}
-	return result
+	return	result
 }
 
 func buildLeaderboards(highlights []highlight) leaderboards {
@@ -760,13 +773,13 @@ func buildLeaderboards(highlights []highlight) leaderboards {
 		sort.Slice(list, func(i, j int) bool {
 			ti := parseTime(list[i].MatchFinishedAt)
 			tj := parseTime(list[j].MatchFinishedAt)
-			if ti.Equal(tj) {
+			if	ti.Equal(tj) {
 				return list[i].Score > list[j].Score
 			}
 			return ti.After(tj)
 		})
 		if len(list) > 0 {
-			lastGame = append(lastGame, list[0])
+			lastGame =	append(lastGame, list[0])
 		}
 
 		limit := 10
@@ -803,7 +816,12 @@ func buildLeaderboards(highlights []highlight) leaderboards {
 		allTime = allTime[:allTimeLimit]
 	}
 
-	return leaderboards{GeneratedAt: time.Now().UTC().Format(time.RFC3339), LastGame: lastGame, Last10: last10, AllTimeTop: allTime}
+	return leaderboards{
+		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
+		LastGame:    lastGame,
+		Last10:      last10,
+		AllTimeTop:  allTime,
+	}
 }
 
 func toMatchTime(ts int64) string {
@@ -841,7 +859,7 @@ func steamTo64(input string) (uint64, error) {
 		}
 		z, err := strconv.ParseUint(parts[2], 10, 64)
 		if err != nil {
-			return 0, err
+		 return 0, err
 		}
 		return 76561197960265728 + z*2 + y, nil
 	}

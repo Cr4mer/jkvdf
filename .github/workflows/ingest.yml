@@ -38,8 +38,10 @@ jobs:
         run: |
           cd parser
           go mod tidy
+          go build -o ../parser.bin
           cd ..
-          go run ./parser
+          ./parser.bin
+          rm -f parser.bin
 
       - name: Commit changes
         run: |

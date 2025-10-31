@@ -1,9 +1,9 @@
 [
-  { "faceitNickname": "Cr4mer" },
-  { "faceitNickname": "faqin" },
-  { "faceitNickname": "Black_panth" },
-  { "faceitNickname": "psYKENN" },
-  { "faceitNickname": "KQligchris" },
-  { "faceitNickname": "kattepeter" },
-  { "faceitNickname": "pharty" }
+  { "faceitNickname": "Cr4mer",      "steamId": "STEAM_0:1:125547" },
+  { "faceitNickname": "faqin",       "steamId": "STEAM_0:0:43407091" },
+  { "faceitNickname": "Black_panth", "steamId": "STEAM_0:1:21839777" },
+  { "faceitNickname": "psYKENN",     "steamId": "STEAM_0:1:10761131" },
+  { "faceitNickname": "KQligchris",  "steamId": "STEAM_0:1:46139323" },
+  { "faceitNickname": "kattepeter",  "steamId": "STEAM_0:0:2997904" },
+  { "faceitNickname": "pharty",      "steamId": "STEAM_0:0:3814864" }
 ]

@@ -35,6 +35,7 @@ jobs:
       - name: Run parser
         env:
           FACEIT_API_KEY: ${{ secrets.FACEIT_API_KEY }}
+          GODEBUG: netdns=go
         run: |
           cd parser
           go mod tidy

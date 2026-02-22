@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* App-level tweaks */
+:root { color-scheme: dark; }
+img { display: block; max-width: 100%; height: auto; }
+button { outline-offset: 2px; }
+
+

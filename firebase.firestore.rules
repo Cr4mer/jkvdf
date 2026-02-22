@@ -1,0 +1,94 @@
+rules_version = '2';
+// Access control: only whitelisted Steam IDs can log in (enforced at login). No admin
+// check in Firestore for maps/nades/training — same as training sessions.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to validate map data structure
+    function isValidMap(data) {
+      return data.keys().hasAll(['name', 'slug', 'thumbnailUrl']) &&
+             data.name is string && 
+             data.name.size() > 0 && 
+             data.name.size() <= 100 &&
+             data.slug is string && 
+             data.slug.size() > 0 && 
+             data.slug.size() <= 50 &&
+             data.thumbnailUrl is string && 
+             data.thumbnailUrl.size() > 0 && 
+             data.thumbnailUrl.size() <= 500;
+    }
+    
+    // Helper function to validate nade data structure
+    function isValidNade(data) {
+      return data.keys().hasAll(['name', 'type', 'side', 'youtubeVideoId', 'startSeconds', 'thumbnailUrl']) &&
+             data.name is string && 
+             data.name.size() > 0 && 
+             data.name.size() <= 200 &&
+             data.type is string && 
+             data.type in ['smoke', 'instant_smoke', 'flash', 'molotov', 'he', 'decoy', 'sæt'] &&
+             data.side is string && 
+             data.side in ['ct', 't', 'both'] &&
+             data.youtubeVideoId is string && 
+             data.youtubeVideoId.size() > 0 && 
+             data.youtubeVideoId.size() <= 20 &&
+             data.startSeconds is int && 
+             data.startSeconds >= 0 &&
+             (!('endSeconds' in data) || (data.endSeconds is int && data.endSeconds >= 0)) &&
+             data.thumbnailUrl is string && 
+             data.thumbnailUrl.size() > 0 && 
+             data.thumbnailUrl.size() <= 500 &&
+             (!('tags' in data) || (data.tags is list && data.tags.size() <= 20));
+    }
+    
+    // Helper function to validate training session data
+    function isValidTrainingSession(data) {
+      return data.keys().hasAll(['date', 'createdBy', 'createdByName', 'createdAt', 'responses']) &&
+             data.date is string && 
+             data.date.size() > 0 &&
+             data.createdBy is string && 
+             data.createdBy.size() > 0 &&
+             data.createdByName is string && 
+             data.createdByName.size() > 0 && 
+             data.createdByName.size() <= 100 &&
+             data.createdAt is timestamp &&
+             data.responses is list &&
+             (!('agenda' in data) || (data.agenda is string && data.agenda.size() <= 20000));
+    }
+    
+    // Admin collection - public read to check admin status, no client writes
+    match /admins/{steamId} {
+      allow read: if true;
+      allow write: if false; // Only via Firebase Console or Admin SDK
+    }
+    
+    // Maps collection - public read, write with validation (same pattern as trainingSessions; whitelist at login)
+    match /maps/{mapId} {
+      allow read: if true;
+      allow create: if isValidMap(request.resource.data);
+      allow update: if isValidMap(request.resource.data);
+      allow delete: if true;
+      
+      // Nades subcollection - public read, write with validation
+      match /nades/{nadeId} {
+        allow read: if true;
+        allow create: if isValidNade(request.resource.data);
+        allow update: if isValidNade(request.resource.data);
+        allow delete: if true;
+      }
+    }
+    
+    // Training sessions - public read, validated writes
+    // Delete: on Spark plan we allow client delete (no Cloud Functions). Upgrade to Blaze and deploy deleteTrainingSession for creator/admin-only delete.
+    match /trainingSessions/{sessionId} {
+      allow read: if true;
+      allow create: if isValidTrainingSession(request.resource.data);
+      allow update: if isValidTrainingSession(request.resource.data);
+      allow delete: if true;
+    }
+    
+    // Deny all other collections by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,19 @@
+# Local env and secrets
+.env
+.env.local
+.env.*.local
+.env.txt
+functions/.env
+
+# Dependencies and build
+node_modules/
+functions/node_modules/
+dist/
+.firebase/
+
+# IDE and OS
+.idea/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db

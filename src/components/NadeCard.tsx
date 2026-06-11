@@ -82,13 +82,11 @@ export default function NadeCard({ nade, onClick, mapName }: Props) {
           thumbnailUrl={thumbnailUrl}
         />
         
-        {/* Play overlay on hover */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-full p-2">
-            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-          </div>
+        {/* Play affordance kept in a corner so it never covers the crosshair (screen centre) */}
+        <div className="absolute bottom-2 right-2 opacity-70 group-hover:opacity-100 transition-opacity bg-black/60 rounded-full p-1.5 pointer-events-none">
+          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
         </div>
         
         {/* Timestamp badge overlay */}

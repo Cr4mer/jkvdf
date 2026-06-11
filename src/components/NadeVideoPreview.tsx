@@ -21,6 +21,10 @@ export default function NadeVideoPreview({
 }: Props) {
   const [isInView, setIsInView] = useState(false);
   const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
+  // Reveal the live iframe only once it is actually playing, so YouTube's centred
+  // paused play button never sits over the crosshair. A timeout falls back to
+  // revealing it anyway, so the looping preview is never lost.
+  const [revealVideo, setRevealVideo] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const timeoutRef = useRef<number | null>(null);
@@ -167,6 +171,45 @@ export default function NadeVideoPreview({
     return () => clearInterval(intervalId);
   }, [shouldLoadVideo, isMobile, videoDuration, videoUrl]);
 
+  // Reveal the iframe when the player reports it's playing (state 1), with a timeout
+  // fallback so the looping preview still shows if that event is missed. revealVideo is
+  // sticky while playback is expected, which also avoids flicker on the periodic refresh.
+  useEffect(() => {
+    const expectPlaying = isMobile ? isActive : shouldLoadVideo;
+    if (!expectPlaying) {
+      setRevealVideo(false);
+      return;
+    }
+    const onMessage = (event: MessageEvent) => {
+      const iframe = iframeRef.current;
+      if (!iframe || event.source !== iframe.contentWindow) return;
+      let payload: { event?: string; info?: unknown } | null = null;
+      try {
+        payload = typeof event.data === 'string' ? JSON.parse(event.data) : null;
+      } catch {
+        return;
+      }
+      if (!payload) return;
+      let state: number | undefined;
+      if (payload.event === 'onStateChange' && typeof payload.info === 'number') {
+        state = payload.info;
+      } else if (
+        payload.event === 'infoDelivery' &&
+        payload.info &&
+        typeof (payload.info as { playerState?: unknown }).playerState === 'number'
+      ) {
+        state = (payload.info as { playerState: number }).playerState;
+      }
+      if (state === 1) setRevealVideo(true); // 1 = playing
+    };
+    window.addEventListener('message', onMessage);
+    const fallback = window.setTimeout(() => setRevealVideo(true), 1200);
+    return () => {
+      window.removeEventListener('message', onMessage);
+      window.clearTimeout(fallback);
+    };
+  }, [isMobile, isActive, shouldLoadVideo]);
+
   // Detect scroll/touch gestures to activate video
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
@@ -232,8 +275,8 @@ export default function NadeVideoPreview({
         src={fallbackThumbnail} 
         alt="Video preview" 
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ 
-          opacity: (isMobile ? (isActive ? 0 : 1) : (shouldLoadVideo ? 0 : 1)),
+        style={{
+          opacity: revealVideo ? 0 : 1,
           transition: 'opacity 0.3s'
         }}
       />
@@ -246,9 +289,9 @@ export default function NadeVideoPreview({
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           allowFullScreen
           loading="lazy"
-          style={{ 
+          style={{
             pointerEvents: 'none',
-            opacity: (isMobile ? (isActive ? 1 : 0) : (shouldLoadVideo ? 1 : 0)), // Mobile: fully visible when active, Desktop: when loaded and in view
+            opacity: revealVideo ? 1 : 0, // only once actually playing (see revealVideo effect)
             transition: 'opacity 0.3s'
           }}
           ref={iframeRef}

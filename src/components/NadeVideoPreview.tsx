@@ -30,8 +30,14 @@ export default function NadeVideoPreview({
   const timeoutRef = useRef<number | null>(null);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const videoEndTime = endSeconds || (startSeconds + 5);
-  const videoDuration = videoEndTime - startSeconds;
-  
+  // Playback runs at 2x. Start LEAD_IN_SECONDS of video before the chosen start so
+  // that, after CHROME_COVER_SECONDS of wall time (during which YouTube's start-up
+  // chrome clears behind the still thumbnail), the revealed frame is ~startSeconds.
+  const PLAYBACK_RATE = 2;
+  const CHROME_COVER_SECONDS = 2.5;
+  const LEAD_IN_SECONDS = CHROME_COVER_SECONDS * PLAYBACK_RATE;
+  const playbackStart = Math.max(0, startSeconds - LEAD_IN_SECONDS);
+
   const { activeVideoId, setActiveVideoId } = useActiveVideo();
   const isActive = activeVideoId === id;
   
@@ -107,7 +113,7 @@ export default function NadeVideoPreview({
 
   // Generate the YouTube video URL for the segment (only when should load)
   const videoUrl = shouldLoadVideo || isActive
-    ? `https://www.youtube.com/embed/${videoId}?start=${startSeconds}&end=${videoEndTime}&autoplay=${isMobile ? (isActive ? 1 : 0) : 1}&mute=1&playsinline=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&enablejsapi=1&iv_load_policy=3&origin=${encodeURIComponent(window.location.origin)}`
+    ? `https://www.youtube.com/embed/${videoId}?start=${playbackStart}&end=${videoEndTime}&autoplay=${isMobile ? (isActive ? 1 : 0) : 1}&mute=1&playsinline=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&enablejsapi=1&iv_load_policy=3&origin=${encodeURIComponent(window.location.origin)}`
     : null;
 
   // Helper to talk to YouTube iframe player
@@ -130,7 +136,7 @@ export default function NadeVideoPreview({
       // On mobile, only play when active (video will load if isActive is true, even if shouldLoadVideo is false)
       if (isActive) {
         postToPlayer('mute');
-        postToPlayer('seekTo', [startSeconds, true]);
+        postToPlayer('seekTo', [playbackStart, true]);
         postToPlayer('playVideo');
         postToPlayer('setPlaybackRate', [2.0]);
       } else {
@@ -140,7 +146,7 @@ export default function NadeVideoPreview({
       // On desktop, auto-play when loaded and in view
       if (shouldLoadVideo) {
         postToPlayer('mute');
-        postToPlayer('seekTo', [startSeconds, true]);
+        postToPlayer('seekTo', [playbackStart, true]);
         postToPlayer('playVideo');
         postToPlayer('setPlaybackRate', [2.0]);
         // When active, ensure it's playing (in case it was paused)
@@ -151,35 +157,27 @@ export default function NadeVideoPreview({
     }
   }, [isActive, shouldLoadVideo, isMobile, startSeconds]);
 
-  // Refresh the iframe every (duration / 2) seconds at 2x speed to keep it looping correctly (desktop only, when loaded)
-  useEffect(() => {
-    if (!shouldLoadVideo || isMobile || !videoUrl) return;
-    
-    const refreshInterval = (videoDuration / 2) * 1000;
-    const intervalId = setInterval(() => {
-      // Force reload by updating iframe src with timestamp
-      if (containerRef.current) {
-        const iframe = containerRef.current.querySelector('iframe');
-        if (iframe) {
-          const url = new URL(iframe.src);
-          url.searchParams.set('t', Date.now().toString());
-          iframe.src = url.toString();
-        }
-      }
-    }, refreshInterval);
-    
-    return () => clearInterval(intervalId);
-  }, [shouldLoadVideo, isMobile, videoDuration, videoUrl]);
-
-  // Reveal the iframe when the player reports it's playing (state 1), with a timeout
-  // fallback so the looping preview still shows if that event is missed. revealVideo is
-  // sticky while playback is expected, which also avoids flicker on the periodic refresh.
+  // Keep the still thumbnail over the video for the first CHROME_COVER_SECONDS of
+  // playback (so YouTube's start-up chrome — title bar + centre play button — is
+  // hidden), then cross-fade to the now-clean video. Loop the segment with a seekTo
+  // (no iframe reload), so the chrome only ever appears once, behind the thumbnail.
   useEffect(() => {
     const expectPlaying = isMobile ? isActive : shouldLoadVideo;
     if (!expectPlaying) {
       setRevealVideo(false);
       return;
     }
+
+    let revealScheduled = false;
+    let revealTimer: number | undefined;
+    let lastSeek = 0;
+
+    const scheduleReveal = () => {
+      if (revealScheduled) return;
+      revealScheduled = true;
+      revealTimer = window.setTimeout(() => setRevealVideo(true), CHROME_COVER_SECONDS * 1000);
+    };
+
     const onMessage = (event: MessageEvent) => {
       const iframe = iframeRef.current;
       if (!iframe || event.source !== iframe.contentWindow) return;
@@ -190,25 +188,43 @@ export default function NadeVideoPreview({
         return;
       }
       if (!payload) return;
-      let state: number | undefined;
-      if (payload.event === 'onStateChange' && typeof payload.info === 'number') {
-        state = payload.info;
-      } else if (
-        payload.event === 'infoDelivery' &&
-        payload.info &&
-        typeof (payload.info as { playerState?: unknown }).playerState === 'number'
-      ) {
-        state = (payload.info as { playerState: number }).playerState;
+
+      const info = payload.info;
+      const playerState =
+        payload.event === 'onStateChange' && typeof info === 'number'
+          ? info
+          : info && typeof info === 'object' && typeof (info as { playerState?: unknown }).playerState === 'number'
+            ? (info as { playerState: number }).playerState
+            : undefined;
+
+      // 1 = playing: chrome is on screen now, so reveal a little later once it clears.
+      if (playerState === 1) scheduleReveal();
+
+      // Loop the segment with a seek (no reload -> no chrome) when we reach the end.
+      const currentTime =
+        info && typeof info === 'object' && typeof (info as { currentTime?: unknown }).currentTime === 'number'
+          ? (info as { currentTime: number }).currentTime
+          : undefined;
+      if (typeof currentTime === 'number' && currentTime >= videoEndTime - 0.25) {
+        const now = Date.now();
+        if (now - lastSeek > 400) {
+          lastSeek = now;
+          postToPlayer('seekTo', [startSeconds, true]);
+          postToPlayer('playVideo');
+        }
       }
-      if (state === 1) setRevealVideo(true); // 1 = playing
     };
+
     window.addEventListener('message', onMessage);
-    const fallback = window.setTimeout(() => setRevealVideo(true), 1200);
+    // Fallback: reveal even if we never hear a "playing" event, so motion isn't lost.
+    const fallback = window.setTimeout(() => setRevealVideo(true), (CHROME_COVER_SECONDS + 2.5) * 1000);
+
     return () => {
       window.removeEventListener('message', onMessage);
+      if (revealTimer) window.clearTimeout(revealTimer);
       window.clearTimeout(fallback);
     };
-  }, [isMobile, isActive, shouldLoadVideo]);
+  }, [isMobile, isActive, shouldLoadVideo, startSeconds, videoEndTime]);
 
   // Detect scroll/touch gestures to activate video
   const handleTouchStart = (e: React.TouchEvent) => {

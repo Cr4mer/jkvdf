@@ -5,6 +5,7 @@ import { Cs2Map } from '@/types';
 import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 import { useAuth } from '@/hooks/useAuth';
 import { normalizeSteamId } from '@/utils/steamWhitelist';
+import { versionedAsset } from '@/utils/assets';
 
 export default function AdminMaps() {
   const { user } = useAuth();
@@ -210,7 +211,7 @@ export default function AdminMaps() {
           <div key={map.id} className="bg-neutral-800 rounded-lg p-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img
-                src={map.thumbnailUrl}
+                src={versionedAsset(map.thumbnailUrl)}
                 alt={map.name}
                 className="w-16 h-12 object-cover rounded"
               />

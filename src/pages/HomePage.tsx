@@ -5,6 +5,7 @@ import { db } from '@/firebase';
 import { Cs2Map } from '@/types';
 import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 import RoosterPreview from '@/components/RoosterPreview';
+import { versionedAsset } from '@/utils/assets';
 
 export default function HomePage() {
   const mapsRef = collection(db, 'maps');
@@ -113,9 +114,9 @@ export default function HomePage() {
                 className="group rounded-lg overflow-hidden border border-white/10 hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all hover:scale-105"
               >
                 <div className="aspect-video bg-neutral-900 relative">
-                  <img 
-                    src={map.thumbnailUrl} 
-                    alt={map.name} 
+                  <img
+                    src={versionedAsset(map.thumbnailUrl)}
+                    alt={map.name}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />

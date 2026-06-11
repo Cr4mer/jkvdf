@@ -4,17 +4,20 @@
  * Data only returned for players registered on Leetify. See https://leetify.com
  */
 
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getFunctions, httpsCallable, type HttpsCallable } from 'firebase/functions';
 import { app } from '@/firebase';
 import { legacyToSteamId64 } from '@/utils/steamAuth';
 import type { LeetifyStats } from '@/types';
 
-let leetifyProxyCallable: ReturnType<typeof httpsCallable> | null = null;
+type LeetifyProxyRequest = { path: string; steamId64?: string };
+type LeetifyProxyCallable = HttpsCallable<LeetifyProxyRequest, unknown>;
 
-function getLeetifyProxy() {
+let leetifyProxyCallable: LeetifyProxyCallable | null = null;
+
+function getLeetifyProxy(): LeetifyProxyCallable {
   if (!leetifyProxyCallable) {
     const functions = getFunctions(app);
-    leetifyProxyCallable = httpsCallable<{ path: string }, unknown>(functions, 'leetifyProxy');
+    leetifyProxyCallable = httpsCallable<LeetifyProxyRequest, unknown>(functions, 'leetifyProxy');
   }
   return leetifyProxyCallable;
 }

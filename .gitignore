@@ -1,0 +1,24 @@
+# Local environment
+.env
+.env.local
+.env.*.local
+
+# Node
+node_modules/
+
+# Go parser build artifact
+parser.bin
+/parser/parser.bin
+
+# Downloaded demos / scratch files
+*.dem
+*.dem.gz
+*.dem.zst
+/tmp-demos/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

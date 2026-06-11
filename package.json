@@ -1,0 +1,14 @@
+{
+  "name": "jkvdf",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "FACEIT CS2 highlights pipeline: ingest recent matches and extract multikill highlights from match demos.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "ingest": "node --env-file=.env scripts/ingest.mjs",
+    "check": "node --check scripts/ingest.mjs"
+  }
+}

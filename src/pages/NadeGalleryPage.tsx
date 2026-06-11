@@ -86,7 +86,10 @@ export default function NadeGalleryPage() {
   // Filter nades based on selected types and sides
   const filteredNades = nades?.filter(nade => {
     const typeMatch = selectedTypes.has('all') || selectedTypes.has(nade.type);
-    const sideMatch = selectedSides.has(nade.side || 'ct');
+    // 'both'-sided nades apply to CT and T, so show them whenever either side is selected.
+    const sideMatch = nade.side === 'both'
+      ? (selectedSides.has('ct') || selectedSides.has('t'))
+      : selectedSides.has(nade.side || 'ct');
     return typeMatch && sideMatch;
   }) || [];
 

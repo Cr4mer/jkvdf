@@ -107,7 +107,7 @@ export default function NadeVideoPreview({
 
   // Generate the YouTube video URL for the segment (only when should load)
   const videoUrl = shouldLoadVideo || isActive
-    ? `https://www.youtube.com/embed/${videoId}?start=${startSeconds}&end=${videoEndTime}&autoplay=${isActive && !isMobile ? 1 : 0}&mute=1&playsinline=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&enablejsapi=1&iv_load_policy=3&origin=${encodeURIComponent(window.location.origin)}`
+    ? `https://www.youtube.com/embed/${videoId}?start=${startSeconds}&end=${videoEndTime}&autoplay=${isMobile ? (isActive ? 1 : 0) : 1}&mute=1&playsinline=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&enablejsapi=1&iv_load_policy=3&origin=${encodeURIComponent(window.location.origin)}`
     : null;
 
   // Helper to talk to YouTube iframe player

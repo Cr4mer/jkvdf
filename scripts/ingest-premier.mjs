@@ -146,6 +146,12 @@ function mapMatch(m, steamId64) {
     }
   }
   if (result == null) {
+    // Fallback: the player's own round tally (rounds_won/rounds_lost exist per Leetify stats).
+    const rw = num(mine.rounds_won);
+    const rl = num(mine.rounds_lost);
+    if (rw != null && rl != null && rw !== rl) result = rw > rl ? 'win' : 'loss';
+  }
+  if (result == null) {
     const outcome = String(rec.outcome ?? rec.result ?? rec.match_result ?? mine.match_result ?? '').toLowerCase();
     if (['win', 'won', '1'].includes(outcome)) result = 'win';
     else if (['loss', 'lost', '0'].includes(outcome)) result = 'loss';

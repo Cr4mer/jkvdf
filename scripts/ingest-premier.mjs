@@ -106,9 +106,8 @@ async function fetchMatches(steamId64) {
   return null;
 }
 
-function mapMatch(m) {
+function mapMatch(m, steamId64) {
   const rec = m && typeof m === 'object' ? m : {};
-  const stats = rec.stats && typeof rec.stats === 'object' ? rec.stats : rec;
 
   const finishedAtRaw = rec.finished_at ?? rec.finishedAt ?? rec.date ?? rec.match_finished_at ?? rec.created_at;
   let finishedAt = null;
@@ -118,21 +117,50 @@ function mapMatch(m) {
     finishedAt = new Date(finishedAtRaw < 1e12 ? finishedAtRaw * 1000 : finishedAtRaw).toISOString();
   }
 
-  const outcome = String(rec.outcome ?? rec.result ?? rec.match_result ?? '').toLowerCase();
-  const result = ['win', 'won', '1'].includes(outcome)
-    ? 'win'
-    : ['loss', 'lost', '0'].includes(outcome)
-      ? 'loss'
-      : null;
+  // Per-player K/D/A live in the match's `stats` array — find this player's entry.
+  const statsArr = Array.isArray(rec.stats) ? rec.stats : [];
+  const idStr = String(steamId64);
+  const mine =
+    statsArr.find(
+      (s) =>
+        s &&
+        typeof s === 'object' &&
+        [s.steam64_id, s.steam_id, s.steamId64, s.steam_id_64, s.steamId, s.steamid].some(
+          (v) => v != null && String(v) === idStr,
+        ),
+    ) || {};
+
+  const kills = num(mine.kills ?? mine.total_kills);
+  const deaths = num(mine.deaths ?? mine.total_deaths);
+  const assists = num(mine.assists ?? mine.total_assists);
+
+  // W/L: compare this player's team score vs the opponent in `team_scores`.
+  const myTeam = num(mine.team_number ?? mine.initial_team_number ?? mine.starting_team_number ?? mine.team);
+  let result = null;
+  const scores = Array.isArray(rec.team_scores) ? rec.team_scores : [];
+  if (myTeam != null && scores.length >= 2) {
+    const myScore = num(scores.find((t) => num(t?.team_number) === myTeam)?.score);
+    const oppScore = num(scores.find((t) => num(t?.team_number) !== myTeam)?.score);
+    if (myScore != null && oppScore != null) {
+      result = myScore > oppScore ? 'win' : myScore < oppScore ? 'loss' : null;
+    }
+  }
+  if (result == null) {
+    const outcome = String(rec.outcome ?? rec.result ?? rec.match_result ?? mine.match_result ?? '').toLowerCase();
+    if (['win', 'won', '1'].includes(outcome)) result = 'win';
+    else if (['loss', 'lost', '0'].includes(outcome)) result = 'loss';
+  }
 
   return {
     matchId: String(rec.id ?? rec.match_id ?? rec.matchId ?? ''),
     finishedAt,
     result,
-    kills: num(stats.kills ?? stats.total_kills),
-    deaths: num(stats.deaths ?? stats.total_deaths),
-    assists: num(stats.assists ?? stats.total_assists),
+    kills,
+    deaths,
+    assists,
     map: rec.map_name ?? rec.map ?? rec.mapName ?? null,
+    shareCode: rec.data_source_match_id ?? null,
+    demoUrl: rec.replay_url ?? null,
   };
 }
 
@@ -156,10 +184,13 @@ async function main() {
         console.log(`  matches via ${found.path}: ${found.arr.length} raw`);
         if (found.arr[0] && typeof found.arr[0] === 'object') {
           console.log('  sample match keys:', Object.keys(found.arr[0]).join(', '));
-          console.log('  sample match:', JSON.stringify(found.arr[0]).slice(0, 400));
+          const ps = Array.isArray(found.arr[0].stats) ? found.arr[0].stats[0] : null;
+          if (ps && typeof ps === 'object') {
+            console.log('  sample player-stats keys:', Object.keys(ps).join(', '));
+          }
         }
         matches = found.arr
-          .map(mapMatch)
+          .map((m) => mapMatch(m, steamId64))
           .filter((m) => m.finishedAt)
           .sort((a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime())
           .slice(0, 10);

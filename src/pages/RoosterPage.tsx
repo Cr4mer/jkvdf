@@ -2,9 +2,27 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaceitStats, LeetifyStats } from '@/types';
 import { TEAM_MEMBERS } from '@/utils/steamWhitelist';
-import { getLeetifyProfile, LEETIFY_CLUB_URL } from '@/utils/leetifyApi';
+import { LEETIFY_CLUB_URL } from '@/utils/leetifyApi';
+import { db } from '@/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 const members = TEAM_MEMBERS;
+
+type PremierProfile = {
+  gamesPlayed?: number;
+  winRate?: number;
+  kd?: number;
+  avgKills?: number;
+  hsRate?: number;
+  leetifyRating?: number | null;
+  mvps?: number;
+};
+type PremierDocData = {
+  faceitNickname?: string;
+  displayName?: string;
+  matches?: unknown[];
+  profile?: PremierProfile | null;
+};
 
 export default function RoosterPage() {
   const [stats, setStats] = useState<FaceitStats[]>([]);
@@ -95,21 +113,42 @@ export default function RoosterPage() {
     }
   };
 
+  // Premier stats come from the premierMatches Firestore collection (populated by the
+  // Premier GitHub Action). No Cloud Function, so this works on the Spark plan.
   const loadLeetifyStats = async () => {
     setLeetifyLoading(true);
     setLeetifyError(null);
     try {
-      const results = await Promise.all(
-        members.map((m) => getLeetifyProfile(m.steamId, m.name))
-      );
+      const snap = await getDocs(collection(db, 'premierMatches'));
+      const byNick: Record<string, PremierDocData> = {};
+      snap.forEach((d) => {
+        const data = d.data() as PremierDocData;
+        byNick[String(data.faceitNickname ?? d.id).toLowerCase()] = data;
+      });
+
+      const results: LeetifyStats[] = members.map((m) => {
+        const doc = byNick[m.faceitNickname.toLowerCase()];
+        const p = doc?.profile;
+        const hasData = !!p && (doc?.matches?.length ?? 0) > 0;
+        if (!hasData) {
+          return { steamId: m.steamId, displayName: m.name, noData: true };
+        }
+        return {
+          steamId: m.steamId,
+          displayName: m.name,
+          noData: false,
+          leetifyRating: p?.leetifyRating ?? undefined,
+          gamesPlayed: p?.gamesPlayed,
+          winRate: p?.winRate,
+          kd: p?.kd,
+          avgKills: p?.avgKills,
+          hsRate: p?.hsRate,
+        };
+      });
       setLeetifyStats(results);
     } catch (err: unknown) {
-      console.error('Failed to load Leetify stats:', err);
-      const code = err && typeof err === 'object' && 'code' in err ? (err as { code?: string }).code : '';
-      const msg = code === 'functions/failed-precondition'
-        ? 'Premier stats are not configured. Add a Leetify API key in Firebase (see DEPLOYMENT.md).'
-        : 'Failed to load Premier stats. Check the console or try again later.';
-      setLeetifyError(msg);
+      console.error('Failed to load Premier stats from Firestore:', err);
+      setLeetifyError('Failed to load Premier stats. Try again later.');
       setLeetifyStats(members.map((m) => ({ steamId: m.steamId, displayName: m.name, noData: true })));
     } finally {
       setLeetifyLoading(false);

@@ -106,67 +106,103 @@ async function fetchMatches(steamId64) {
   return null;
 }
 
-function mapMatch(m, steamId64) {
-  const rec = m && typeof m === 'object' ? m : {};
+function finishedAtIso(rec) {
+  const raw = rec?.finished_at ?? rec?.finishedAt ?? rec?.date ?? rec?.match_finished_at ?? rec?.created_at;
+  if (typeof raw === 'string' && raw.trim() !== '') return raw;
+  if (typeof raw === 'number') return new Date(raw < 1e12 ? raw * 1000 : raw).toISOString();
+  return null;
+}
 
-  const finishedAtRaw = rec.finished_at ?? rec.finishedAt ?? rec.date ?? rec.match_finished_at ?? rec.created_at;
-  let finishedAt = null;
-  if (typeof finishedAtRaw === 'string' && finishedAtRaw.trim() !== '') {
-    finishedAt = finishedAtRaw;
-  } else if (typeof finishedAtRaw === 'number') {
-    finishedAt = new Date(finishedAtRaw < 1e12 ? finishedAtRaw * 1000 : finishedAtRaw).toISOString();
-  }
-
-  // Per-player K/D/A live in the match's `stats` array — find this player's entry.
-  const statsArr = Array.isArray(rec.stats) ? rec.stats : [];
+// Find this player's per-match stats entry inside the match's `stats` array.
+function findPlayerStats(rec, steamId64) {
+  const arr = Array.isArray(rec?.stats) ? rec.stats : [];
   const idStr = String(steamId64);
-  const mine =
-    statsArr.find(
+  return (
+    arr.find(
       (s) =>
         s &&
         typeof s === 'object' &&
         [s.steam64_id, s.steam_id, s.steamId64, s.steam_id_64, s.steamId, s.steamid].some(
           (v) => v != null && String(v) === idStr,
         ),
-    ) || {};
+    ) || null
+  );
+}
 
-  const kills = num(mine.kills ?? mine.total_kills);
-  const deaths = num(mine.deaths ?? mine.total_deaths);
-  const assists = num(mine.assists ?? mine.total_assists);
-
-  // W/L: compare this player's team score vs the opponent in `team_scores`.
-  const myTeam = num(mine.team_number ?? mine.initial_team_number ?? mine.starting_team_number ?? mine.team);
-  let result = null;
-  const scores = Array.isArray(rec.team_scores) ? rec.team_scores : [];
+// W/L for this player: team score vs opponent, with round-tally / outcome fallbacks.
+function resultFor(rec, mine) {
+  const myTeam = num(mine?.team_number ?? mine?.initial_team_number ?? mine?.starting_team_number ?? mine?.team);
+  const scores = Array.isArray(rec?.team_scores) ? rec.team_scores : [];
   if (myTeam != null && scores.length >= 2) {
     const myScore = num(scores.find((t) => num(t?.team_number) === myTeam)?.score);
     const oppScore = num(scores.find((t) => num(t?.team_number) !== myTeam)?.score);
-    if (myScore != null && oppScore != null) {
-      result = myScore > oppScore ? 'win' : myScore < oppScore ? 'loss' : null;
-    }
+    if (myScore != null && oppScore != null && myScore !== oppScore) return myScore > oppScore ? 'win' : 'loss';
   }
-  if (result == null) {
-    // Fallback: the player's own round tally (rounds_won/rounds_lost exist per Leetify stats).
-    const rw = num(mine.rounds_won);
-    const rl = num(mine.rounds_lost);
-    if (rw != null && rl != null && rw !== rl) result = rw > rl ? 'win' : 'loss';
-  }
-  if (result == null) {
-    const outcome = String(rec.outcome ?? rec.result ?? rec.match_result ?? mine.match_result ?? '').toLowerCase();
-    if (['win', 'won', '1'].includes(outcome)) result = 'win';
-    else if (['loss', 'lost', '0'].includes(outcome)) result = 'loss';
-  }
+  const rw = num(mine?.rounds_won);
+  const rl = num(mine?.rounds_lost);
+  if (rw != null && rl != null && rw !== rl) return rw > rl ? 'win' : 'loss';
+  const outcome = String(rec?.outcome ?? rec?.result ?? rec?.match_result ?? mine?.match_result ?? '').toLowerCase();
+  if (['win', 'won', '1'].includes(outcome)) return 'win';
+  if (['loss', 'lost', '0'].includes(outcome)) return 'loss';
+  return null;
+}
 
+function mapMatch(m, steamId64) {
+  const rec = m && typeof m === 'object' ? m : {};
+  const mine = findPlayerStats(rec, steamId64) || {};
   return {
     matchId: String(rec.id ?? rec.match_id ?? rec.matchId ?? ''),
-    finishedAt,
-    result,
-    kills,
-    deaths,
-    assists,
+    finishedAt: finishedAtIso(rec),
+    result: resultFor(rec, mine),
+    kills: num(mine.kills ?? mine.total_kills),
+    deaths: num(mine.deaths ?? mine.total_deaths),
+    assists: num(mine.assists ?? mine.total_assists),
     map: rec.map_name ?? rec.map ?? rec.mapName ?? null,
     shareCode: rec.data_source_match_id ?? null,
     demoUrl: rec.replay_url ?? null,
+  };
+}
+
+// Aggregate "recent form" Premier stats from up to the player's last 30 matches,
+// for the Performance Center "Premier stats" tab (mirrors the FACEIT stat set).
+function aggregateProfile(rawMatches, steamId64) {
+  const recent = (Array.isArray(rawMatches) ? rawMatches : [])
+    .map((m) => ({ m, mine: findPlayerStats(m, steamId64), iso: finishedAtIso(m) }))
+    .filter((x) => x.mine && x.iso)
+    .sort((a, b) => new Date(b.iso).getTime() - new Date(a.iso).getTime())
+    .slice(0, 30);
+  if (recent.length === 0) return null;
+
+  let kills = 0;
+  let deaths = 0;
+  let assists = 0;
+  let hsKills = 0;
+  let wins = 0;
+  let mvps = 0;
+  let ratingSum = 0;
+  let ratingCount = 0;
+  for (const { m, mine } of recent) {
+    kills += num(mine.total_kills ?? mine.kills) ?? 0;
+    deaths += num(mine.total_deaths ?? mine.deaths) ?? 0;
+    assists += num(mine.total_assists ?? mine.assists) ?? 0;
+    hsKills += num(mine.total_hs_kills ?? mine.hs_kills) ?? 0;
+    mvps += num(mine.mvps) ?? 0;
+    const r = num(mine.leetify_rating);
+    if (r != null) {
+      ratingSum += r;
+      ratingCount += 1;
+    }
+    if (resultFor(m, mine) === 'win') wins += 1;
+  }
+  const games = recent.length;
+  return {
+    gamesPlayed: games,
+    winRate: games ? wins / games : 0, // 0..1 (UI multiplies by 100)
+    kd: deaths ? kills / deaths : kills,
+    avgKills: games ? kills / games : 0,
+    hsRate: kills ? (hsKills / kills) * 100 : 0, // percent
+    leetifyRating: ratingCount ? ratingSum / ratingCount : null,
+    mvps,
   };
 }
 
@@ -182,6 +218,7 @@ async function main() {
     console.log(`\n== ${member.name} (${member.faceitNickname}) steam64=${steamId64} ==`);
 
     let matches = [];
+    let profile = null;
     try {
       const found = await fetchMatches(steamId64);
       if (!found) {
@@ -200,6 +237,7 @@ async function main() {
           .filter((m) => m.finishedAt)
           .sort((a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime())
           .slice(0, 10);
+        profile = aggregateProfile(found.arr, steamId64);
       }
     } catch (err) {
       console.error(`  failed: ${err.message}`);
@@ -213,12 +251,15 @@ async function main() {
         steamId: member.steamId,
         steamId64,
         matches,
+        profile: profile ?? null,
         updatedAt: new Date().toISOString(),
       },
       { merge: true },
     );
     totalWritten += matches.length;
-    console.log(`  wrote ${matches.length} match(es) to premierMatches/${docId}`);
+    console.log(
+      `  wrote ${matches.length} match(es)${profile ? ` + profile (${profile.gamesPlayed} games)` : ''} to premierMatches/${docId}`,
+    );
 
     await sleep(300);
   }

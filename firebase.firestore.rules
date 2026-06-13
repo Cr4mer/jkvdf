@@ -86,6 +86,14 @@ service cloud.firestore {
       allow delete: if true;
     }
     
+    // Premier (CS2) recent matches — written only by the Premier GitHub Action via the
+    // Admin SDK (which bypasses these rules). Public read so the site can show them;
+    // no client writes.
+    match /premierMatches/{playerId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Deny all other collections by default
     match /{document=**} {
       allow read, write: if false;

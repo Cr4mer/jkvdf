@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { FaceitStats, LeetifyStats } from '@/types';
+import { collection } from 'firebase/firestore';
+import { FaceitStats } from '@/types';
 import { TEAM_MEMBERS } from '@/utils/steamWhitelist';
-import { getLeetifyProfile } from '@/utils/leetifyApi';
+import { db } from '@/firebase';
+import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 
 const members = TEAM_MEMBERS;
 
@@ -16,16 +18,32 @@ type ActivityMatch = {
   assists?: number;
 };
 
+// premierMatches/{faceitNickname-lowercased} — written by the Premier GitHub Action.
+type PremierMatch = {
+  matchId?: string;
+  finishedAt?: string | null;
+  result?: 'win' | 'loss' | null;
+  kills?: number | null;
+  deaths?: number | null;
+  assists?: number | null;
+  map?: string | null;
+};
+type PremierDoc = { id: string; faceitNickname?: string; matches?: PremierMatch[] };
+
 export default function RoosterPreview() {
   const [stats, setStats] = useState<FaceitStats[]>([]);
-  const [leetify, setLeetify] = useState<LeetifyStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Premier matches come from Firestore (populated by the Premier GitHub Action), so this
+  // works on the Spark plan with no Cloud Function. Public read; empty until the Action runs.
+  const premierRef = useMemo(() => collection(db, 'premierMatches'), []);
+  const { data: premierDocs } = useFirestoreCollection<PremierDoc>(premierRef);
 
   useEffect(() => {
     let cancelled = false;
 
-    // FACEIT stats (drives the loading / error state of the card).
+    // FACEIT stats drive the loading / error state of the card.
     const loadFaceit = async () => {
       setLoading(true);
       try {
@@ -61,23 +79,7 @@ export default function RoosterPreview() {
       }
     };
 
-    // Premier (CS2) recent matches via Leetify — best-effort: never blocks or breaks
-    // the FACEIT view. If Leetify isn't configured, players simply have no Premier rows.
-    const loadLeetify = async () => {
-      try {
-        const results = await Promise.allSettled(members.map((m) => getLeetifyProfile(m.steamId, m.name)));
-        const ok = results
-          .filter((r): r is PromiseFulfilledResult<LeetifyStats> => r.status === 'fulfilled')
-          .map((r) => r.value);
-        if (!cancelled) setLeetify(ok);
-      } catch (err) {
-        console.error('Failed to load Premier (Leetify) recent matches:', err);
-        if (!cancelled) setLeetify([]);
-      }
-    };
-
     loadFaceit();
-    loadLeetify();
 
     return () => {
       cancelled = true;
@@ -99,17 +101,15 @@ export default function RoosterPreview() {
     return stats.filter((p) => (p.gamesInLast30Days || 0) === maxGames);
   }, [stats]);
 
-  // FACEIT nickname -> Steam ID, so we can line each FACEIT player up with their Leetify profile.
-  const steamIdByNick = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const m of members) map[m.faceitNickname.toLowerCase()] = m.steamId;
+  // FACEIT nickname (lowercased) -> that player's Premier matches from Firestore.
+  const premierByNick = useMemo(() => {
+    const map: Record<string, PremierMatch[]> = {};
+    for (const d of premierDocs ?? []) {
+      const nick = (d.faceitNickname ?? d.id ?? '').toLowerCase();
+      if (nick) map[nick] = Array.isArray(d.matches) ? d.matches : [];
+    }
     return map;
-  }, []);
-  const leetifyBySteamId = useMemo(() => {
-    const map: Record<string, LeetifyStats> = {};
-    for (const l of leetify) map[l.steamId] = l;
-    return map;
-  }, [leetify]);
+  }, [premierDocs]);
 
   // Merge a player's recent FACEIT and Premier matches into one recency-sorted feed.
   const getCombinedMatches = (player: FaceitStats): ActivityMatch[] => {
@@ -122,18 +122,16 @@ export default function RoosterPreview() {
       assists: g.assists,
     }));
 
-    const steamId = steamIdByNick[player.faceitNickname.toLowerCase()];
-    const lf = steamId ? leetifyBySteamId[steamId] : undefined;
-    const premierMatches: ActivityMatch[] = (lf?.recentMatches ?? [])
-      .filter((m) => !!m.finishedAt)
+    const premierMatches: ActivityMatch[] = (premierByNick[player.faceitNickname.toLowerCase()] ?? [])
+      .filter((m): m is PremierMatch & { finishedAt: string } => typeof m.finishedAt === 'string' && m.finishedAt.length > 0)
       .slice(0, 2)
       .map((m) => ({
         source: 'Premier',
-        finishedAt: m.finishedAt as string,
-        result: m.result,
-        kills: m.kills,
-        deaths: m.deaths,
-        assists: m.assists,
+        finishedAt: m.finishedAt,
+        result: m.result ?? undefined,
+        kills: m.kills ?? undefined,
+        deaths: m.deaths ?? undefined,
+        assists: m.assists ?? undefined,
       }));
 
     return [...faceitMatches, ...premierMatches]

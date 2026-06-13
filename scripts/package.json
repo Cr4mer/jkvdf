@@ -1,0 +1,10 @@
+{
+  "name": "jkvdf-premier-ingest",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GitHub Action ingest: fetch CS2 Premier matches from Leetify and write them to Firestore.",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

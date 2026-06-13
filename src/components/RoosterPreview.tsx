@@ -111,9 +111,11 @@ export default function RoosterPreview() {
     return map;
   }, [premierDocs]);
 
-  // Merge a player's recent FACEIT and Premier matches into one recency-sorted feed.
+  // Merge a player's FACEIT + Premier matches into one feed and show the most recent
+  // ones — no per-source quota, so recent Premier isn't padded out with stale FACEIT.
+  const RECENT_MATCH_LIMIT = 5;
   const getCombinedMatches = (player: FaceitStats): ActivityMatch[] => {
-    const faceitMatches: ActivityMatch[] = (player.last3Games ?? []).slice(0, 3).map((g) => ({
+    const faceitMatches: ActivityMatch[] = (player.last3Games ?? []).map((g) => ({
       source: 'FACEIT',
       finishedAt: g.finishedAt,
       result: g.result,
@@ -124,7 +126,6 @@ export default function RoosterPreview() {
 
     const premierMatches: ActivityMatch[] = (premierByNick[player.faceitNickname.toLowerCase()] ?? [])
       .filter((m): m is PremierMatch & { finishedAt: string } => typeof m.finishedAt === 'string' && m.finishedAt.length > 0)
-      .slice(0, 2)
       .map((m) => ({
         source: 'Premier',
         finishedAt: m.finishedAt,
@@ -136,7 +137,8 @@ export default function RoosterPreview() {
 
     return [...faceitMatches, ...premierMatches]
       .filter((m) => !Number.isNaN(new Date(m.finishedAt).getTime()))
-      .sort((a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime());
+      .sort((a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime())
+      .slice(0, RECENT_MATCH_LIMIT);
   };
 
   const formatMatchDate = (date: Date) =>

@@ -1,0 +1,24 @@
+name: Probe Leetify club API (temporary)
+
+# Manual-only discovery helper. Run it once, read the logs to see which Leetify
+# club endpoints the developer key can reach, then this workflow + its script
+# can be deleted.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Probe Leetify club endpoints
+        env:
+          LEETIFY_API_KEY: ${{ secrets.LEETIFY_API_KEY }}
+        run: node scripts/probe-leetify-club.mjs

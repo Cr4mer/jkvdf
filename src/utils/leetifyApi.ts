@@ -70,11 +70,38 @@ function mapProfileToLeetifyStats(
   const leetifyRating = ranks?.leetify;
 
   const recentMatches = Array.isArray(data.recent_matches)
-    ? data.recent_matches.slice(0, 10).map((m) => ({
-        matchId: (m?.id ?? '') as string,
-        finishedAt: m?.finished_at as string | undefined,
-        result: (m?.outcome === 'win' ? 'win' : m?.outcome === 'loss' ? 'loss' : undefined) as 'win' | 'loss' | undefined,
-      }))
+    ? data.recent_matches.slice(0, 10).map((m) => {
+        const rec = (m ?? {}) as Record<string, unknown>;
+        const num = (v: unknown): number | undefined =>
+          typeof v === 'number' && !Number.isNaN(v)
+            ? v
+            : typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))
+              ? Number(v)
+              : undefined;
+        // Tolerate field-name variants across Leetify API versions.
+        const finishedAtRaw = rec.finished_at ?? rec.finishedAt ?? rec.date ?? rec.match_finished_at;
+        const finishedAt =
+          typeof finishedAtRaw === 'string'
+            ? finishedAtRaw
+            : typeof finishedAtRaw === 'number'
+              ? new Date(finishedAtRaw).toISOString()
+              : undefined;
+        const outcome = String(rec.outcome ?? rec.result ?? rec.match_result ?? '').toLowerCase();
+        const result: 'win' | 'loss' | undefined =
+          outcome === 'win' || outcome === 'won' || outcome === '1'
+            ? 'win'
+            : outcome === 'loss' || outcome === 'lost' || outcome === '0'
+              ? 'loss'
+              : undefined;
+        return {
+          matchId: (rec.id ?? rec.match_id ?? rec.matchId ?? '') as string,
+          finishedAt,
+          result,
+          kills: num(rec.kills ?? rec.total_kills),
+          deaths: num(rec.deaths ?? rec.total_deaths),
+          assists: num(rec.assists ?? rec.total_assists),
+        };
+      })
     : undefined;
 
   const headshotPct = stats && typeof stats.accuracy_head === 'number' ? stats.accuracy_head : undefined;

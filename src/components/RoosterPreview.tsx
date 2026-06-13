@@ -1,115 +1,163 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { FaceitStats } from '@/types';
+import { FaceitStats, LeetifyStats } from '@/types';
+import { TEAM_MEMBERS } from '@/utils/steamWhitelist';
+import { getLeetifyProfile } from '@/utils/leetifyApi';
 
-type MemberData = {
-  name: string;
-  faceitNickname: string;
+const members = TEAM_MEMBERS;
+
+// A single recent match from either source, normalised for the activity feed.
+type ActivityMatch = {
+  source: 'FACEIT' | 'Premier';
+  finishedAt: string; // ISO timestamp
+  result?: 'win' | 'loss';
+  kills?: number;
+  deaths?: number;
+  assists?: number;
 };
-
-const members: MemberData[] = [
-  { name: 'Cr4mer', faceitNickname: 'Cr4mer' },
-  { name: 'Faqin', faceitNickname: 'faqin' },
-  { name: 'Pharty', faceitNickname: 'pharty' },
-  { name: 'Psykenn', faceitNickname: 'psYKENN' },
-  { name: 'TIS_Black_Panther', faceitNickname: 'Black_panth' },
-  { name: 'KQligChris', faceitNickname: 'KQligchris' },
-  { name: 'Kattepeter', faceitNickname: 'kattepeter' },
-];
-
-// Helper function to format time ago
-function getTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffInMs = now.getTime() - date.getTime();
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-  const diffInDays = Math.floor(diffInHours / 24);
-  
-  if (diffInHours < 1) {
-    return 'Just now';
-  } else if (diffInHours < 24) {
-    return `${diffInHours}h ago`;
-  } else if (diffInDays < 7) {
-    return `${diffInDays}d ago`;
-  } else {
-    return date.toLocaleDateString();
-  }
-}
 
 export default function RoosterPreview() {
   const [stats, setStats] = useState<FaceitStats[]>([]);
+  const [leetify, setLeetify] = useState<LeetifyStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    const loadPreviewStats = async () => {
+    let cancelled = false;
+
+    // FACEIT stats (drives the loading / error state of the card).
+    const loadFaceit = async () => {
       setLoading(true);
       try {
-      // Fetch quick stats (50 matches per player for fast display)
-      // Process in batches of 2 to avoid rate limiting while still being reasonably fast
-      const { getPlayerFullStats } = await import('@/utils/faceitApi');
-      
-      const loadedStats: FaceitStats[] = [];
-      const batchSize = 2;
-        
+        // Fetch quick stats (50 matches per player for fast display), in batches of 2.
+        const { getPlayerFullStats } = await import('@/utils/faceitApi');
+        const loadedStats: FaceitStats[] = [];
+        const batchSize = 2;
+
         for (let i = 0; i < members.length; i += batchSize) {
           const batch = members.slice(i, i + batchSize);
-          const batchPromises = batch.map(async (member) => {
-            // Fetch only 50 matches for quick display
-            return await getPlayerFullStats(member.faceitNickname, 50);
-          });
-          
-          const batchResults = await Promise.allSettled(batchPromises);
-          const successfulResults = batchResults
-            .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
-            .map(result => result.value);
-          
-          // Log failed requests
+          const batchResults = await Promise.allSettled(
+            batch.map((member) => getPlayerFullStats(member.faceitNickname, 50))
+          );
           batchResults.forEach((result, index) => {
-            if (result.status === 'rejected') {
-              console.error(`Failed to load stats for ${batch[index].faceitNickname}:`, result.reason);
+            if (result.status === 'fulfilled') {
+              loadedStats.push(result.value);
+            } else {
+              console.error(`Failed to load FACEIT stats for ${batch[index].faceitNickname}:`, result.reason);
             }
           });
-          
-          loadedStats.push(...successfulResults);
-          
-          // Reduced delay between batches
+
           if (i + batchSize < members.length) {
-            await new Promise(resolve => setTimeout(resolve, 150));
+            await new Promise((resolve) => setTimeout(resolve, 150));
           }
         }
-        
-        setStats(loadedStats);
+
+        if (!cancelled) setStats(loadedStats);
       } catch (err) {
         console.error('Failed to load preview stats:', err);
-        // Show error state instead of mock data
-        setStats([]);
+        if (!cancelled) setStats([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    loadPreviewStats();
+    // Premier (CS2) recent matches via Leetify — best-effort: never blocks or breaks
+    // the FACEIT view. If Leetify isn't configured, players simply have no Premier rows.
+    const loadLeetify = async () => {
+      try {
+        const results = await Promise.allSettled(members.map((m) => getLeetifyProfile(m.steamId, m.name)));
+        const ok = results
+          .filter((r): r is PromiseFulfilledResult<LeetifyStats> => r.status === 'fulfilled')
+          .map((r) => r.value);
+        if (!cancelled) setLeetify(ok);
+      } catch (err) {
+        console.error('Failed to load Premier (Leetify) recent matches:', err);
+        if (!cancelled) setLeetify([]);
+      }
+    };
+
+    loadFaceit();
+    loadLeetify();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Update current time every minute for the time ago counter
+  // Update current time every minute for the "time ago" counter
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Update every minute
-
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 
   // Calculate most active player(s) - MUST be before any returns
   const mostActivePlayers = useMemo(() => {
     if (stats.length === 0) return [];
-    
-    // Find the max number of games in last 30 days
-    const maxGames = Math.max(...stats.map(p => p.gamesInLast30Days || 0));
-    
-    // Find all players with the max games (handles ties)
-    return stats.filter(p => (p.gamesInLast30Days || 0) === maxGames);
+    const maxGames = Math.max(...stats.map((p) => p.gamesInLast30Days || 0));
+    return stats.filter((p) => (p.gamesInLast30Days || 0) === maxGames);
   }, [stats]);
+
+  // FACEIT nickname -> Steam ID, so we can line each FACEIT player up with their Leetify profile.
+  const steamIdByNick = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const m of members) map[m.faceitNickname.toLowerCase()] = m.steamId;
+    return map;
+  }, []);
+  const leetifyBySteamId = useMemo(() => {
+    const map: Record<string, LeetifyStats> = {};
+    for (const l of leetify) map[l.steamId] = l;
+    return map;
+  }, [leetify]);
+
+  // Merge a player's recent FACEIT and Premier matches into one recency-sorted feed.
+  const getCombinedMatches = (player: FaceitStats): ActivityMatch[] => {
+    const faceitMatches: ActivityMatch[] = (player.last3Games ?? []).slice(0, 3).map((g) => ({
+      source: 'FACEIT',
+      finishedAt: g.finishedAt,
+      result: g.result,
+      kills: g.kills,
+      deaths: g.deaths,
+      assists: g.assists,
+    }));
+
+    const steamId = steamIdByNick[player.faceitNickname.toLowerCase()];
+    const lf = steamId ? leetifyBySteamId[steamId] : undefined;
+    const premierMatches: ActivityMatch[] = (lf?.recentMatches ?? [])
+      .filter((m) => !!m.finishedAt)
+      .slice(0, 2)
+      .map((m) => ({
+        source: 'Premier',
+        finishedAt: m.finishedAt as string,
+        result: m.result,
+        kills: m.kills,
+        deaths: m.deaths,
+        assists: m.assists,
+      }));
+
+    return [...faceitMatches, ...premierMatches]
+      .filter((m) => !Number.isNaN(new Date(m.finishedAt).getTime()))
+      .sort((a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime());
+  };
+
+  const formatMatchDate = (date: Date) =>
+    date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+  const formatTimeAgo = (date: Date): string => {
+    const diffInMins = Math.max(0, Math.floor((currentTime.getTime() - date.getTime()) / (1000 * 60)));
+    const diffInHours = Math.floor(diffInMins / 60);
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInMins < 60) return `${diffInMins}m ago`;
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    return `${diffInDays}d ago`;
+  };
 
   if (loading) {
     return (
@@ -139,8 +187,8 @@ export default function RoosterPreview() {
               <p>• Faceit API is accessible</p>
               <p>• Player nicknames are correct</p>
             </div>
-            <button 
-              onClick={() => window.location.reload()} 
+            <button
+              onClick={() => window.location.reload()}
               className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors"
             >
               Retry
@@ -159,8 +207,8 @@ export default function RoosterPreview() {
             <span className="text-2xl">👥</span>
             Recent Activity
           </h2>
-          <Link 
-            to="/rooster" 
+          <Link
+            to="/rooster"
             className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
           >
             Go to JKVDF Performance Center →
@@ -186,57 +234,67 @@ export default function RoosterPreview() {
               </div>
             </div>
           )}
-          {/* Last 3 Games */}
+          {/* Recent Matches (FACEIT + CS2 Premier) */}
           <div className="bg-neutral-800/50 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Last 3 Games</h3>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Recent Matches</h3>
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide">
+                <span className="px-1.5 py-0.5 rounded bg-orange-900/50 text-orange-300">FACEIT</span>
+                <span className="px-1.5 py-0.5 rounded bg-purple-900/50 text-purple-300">Premier</span>
+              </div>
+            </div>
             <div className="space-y-3">
-              {stats.map((player) => (
-                <div key={player.playerId} className="space-y-2">
-                  <div className="text-sm font-medium text-blue-400">{player.faceitNickname}</div>
-                  <div className="space-y-1">
-                    {player.last3Games?.map((game, index) => {
-                      const gameDate = new Date(game.finishedAt);
-                      const formattedDate = gameDate.toLocaleDateString('en-US', { 
-                        year: 'numeric',
-                        month: 'short', 
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      });
-                      
-                      // Calculate time ago
-                      const diffInMs = currentTime.getTime() - gameDate.getTime();
-                      const diffInMins = Math.floor(diffInMs / (1000 * 60));
-                      const diffInHours = Math.floor(diffInMins / 60);
-                      const diffInDays = Math.floor(diffInHours / 24);
-                      
-                      let timeAgo;
-                      if (diffInMins < 60) {
-                        timeAgo = `${diffInMins}m ago`;
-                      } else if (diffInHours < 24) {
-                        timeAgo = `${diffInHours}h ago`;
-                      } else {
-                        timeAgo = `${diffInDays}d ago`;
-                      }
-                      
-                      return (
-                        <div key={`${player.playerId}-game-${index}`} className="flex items-center justify-between text-xs bg-neutral-700/30 rounded px-2 py-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-400">{formattedDate}</span>
-                            <span className="text-gray-500">({timeAgo})</span>
-                            <span className={`px-1 rounded text-xs ${game.result === 'win' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
-                              {game.result === 'win' ? 'W' : 'L'}
-                            </span>
-                            <span className="text-gray-300">
-                              {game.kills}/{game.deaths}/{game.assists}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    }) || []}
+              {stats.map((player) => {
+                const matches = getCombinedMatches(player);
+                return (
+                  <div key={player.playerId} className="space-y-2">
+                    <div className="text-sm font-medium text-blue-400">{player.faceitNickname}</div>
+                    <div className="space-y-1">
+                      {matches.length === 0 ? (
+                        <div className="text-xs text-gray-500">No recent games</div>
+                      ) : (
+                        matches.map((game, index) => {
+                          const gameDate = new Date(game.finishedAt);
+                          return (
+                            <div
+                              key={`${player.playerId}-${game.source}-${index}`}
+                              className="flex items-center justify-between text-xs bg-neutral-700/30 rounded px-2 py-1"
+                            >
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span
+                                  className={`px-1 rounded text-[10px] uppercase tracking-wide ${
+                                    game.source === 'FACEIT'
+                                      ? 'bg-orange-900/50 text-orange-300'
+                                      : 'bg-purple-900/50 text-purple-300'
+                                  }`}
+                                >
+                                  {game.source}
+                                </span>
+                                <span className="text-gray-400">{formatMatchDate(gameDate)}</span>
+                                <span className="text-gray-500">({formatTimeAgo(gameDate)})</span>
+                                {game.result && (
+                                  <span
+                                    className={`px-1 rounded text-xs ${
+                                      game.result === 'win' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'
+                                    }`}
+                                  >
+                                    {game.result === 'win' ? 'W' : 'L'}
+                                  </span>
+                                )}
+                                {game.kills != null && game.deaths != null && (
+                                  <span className="text-gray-300">
+                                    {game.kills}/{game.deaths}/{game.assists ?? 0}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

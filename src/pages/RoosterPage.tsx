@@ -30,9 +30,13 @@ type PremierEntry = { nick: string; name: string; profile: PremierProfile };
 // Only this Steam ID can see the private Award Show planning view.
 const CR4MER_STEAM_ID = 'STEAM_0:1:125547';
 
+// Leetify Rating is stored as a fraction (e.g. 0.0337); Leetify displays it ×100 with a
+// sign, e.g. +3.37 / -1.20.
+const formatLeetifyRating = (v: number): string => `${v >= 0 ? '+' : ''}${(v * 100).toFixed(2)}`;
+
 // Metrics for the Premier leaderboard (read from each player's stored profile).
 const LB_METRICS: { key: string; label: string; fmt: (v: number) => string }[] = [
-  { key: 'leetifyRating', label: 'Leetify Rating', fmt: (v) => v.toFixed(2) },
+  { key: 'leetifyRating', label: 'Leetify Rating', fmt: formatLeetifyRating },
   { key: 'kd', label: 'K/D', fmt: (v) => v.toFixed(2) },
   { key: 'winRate', label: 'Win %', fmt: (v) => `${(v * 100).toFixed(1)}%` },
   { key: 'hsRate', label: 'HS %', fmt: (v) => `${v.toFixed(1)}%` },
@@ -41,7 +45,7 @@ const LB_METRICS: { key: string; label: string; fmt: (v: number) => string }[] =
 
 // Award categories for the private Award Show, auto-tallied from Premier stats.
 const AWARD_CATEGORIES: { key: string; emoji: string; title: string; fmt: (v: number) => string }[] = [
-  { key: 'leetifyRating', emoji: '🏆', title: 'Highest Leetify Rating', fmt: (v) => v.toFixed(2) },
+  { key: 'leetifyRating', emoji: '🏆', title: 'Highest Leetify Rating', fmt: formatLeetifyRating },
   { key: 'kd', emoji: '🔫', title: 'Top Fragger (K/D)', fmt: (v) => v.toFixed(2) },
   { key: 'hsRate', emoji: '🎯', title: 'Best Aim (HS%)', fmt: (v) => `${v.toFixed(1)}%` },
   { key: 'winRate', emoji: '📈', title: 'Best Win Rate', fmt: (v) => `${(v * 100).toFixed(1)}%` },
@@ -781,7 +785,7 @@ export default function RoosterPage() {
                         {player.leetifyRating != null && (
                           <div className="flex justify-between">
                             <span className="text-gray-400">Leetify Rating</span>
-                            <span className="font-semibold">{Number(player.leetifyRating).toFixed(2)}</span>
+                            <span className="font-semibold">{formatLeetifyRating(Number(player.leetifyRating))}</span>
                           </div>
                         )}
                         {player.aim != null && (
@@ -883,26 +887,51 @@ export default function RoosterPage() {
             </div>
           ) : (
             (() => {
-              const metric = LB_METRICS.find((m) => m.key === lbMetric)!;
               const ranked = rankedBy(lbMetric);
-              const max = metricValue(ranked[0].profile, lbMetric) ?? 1;
               const medals = ['🥇', '🥈', '🥉'];
               return (
-                <div className="border border-white/10 rounded-lg bg-neutral-900/50 backdrop-blur-sm divide-y divide-white/10">
-                  {ranked.map((e, i) => {
-                    const v = metricValue(e.profile, lbMetric)!;
-                    const pct = max > 0 ? Math.max(4, (v / max) * 100) : 0;
-                    return (
-                      <div key={e.nick} className="flex items-center gap-3 sm:gap-4 p-3">
-                        <span className="w-6 text-center text-sm font-bold">{medals[i] ?? i + 1}</span>
-                        <span className="w-24 sm:w-36 truncate font-medium">{e.name}</span>
-                        <div className="flex-1 h-5 bg-neutral-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500" style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className="w-20 text-right font-semibold tabular-nums">{metric.fmt(v)}</span>
-                      </div>
-                    );
-                  })}
+                <div className="border border-white/10 rounded-lg bg-neutral-900/50 backdrop-blur-sm overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-gray-400 text-xs uppercase tracking-wide border-b border-white/10">
+                        <th className="text-left font-medium p-3 w-10">#</th>
+                        <th className="text-left font-medium p-3">Player</th>
+                        {LB_METRICS.map((m) => (
+                          <th
+                            key={m.key}
+                            onClick={() => setLbMetric(m.key)}
+                            className={`text-right font-medium p-3 whitespace-nowrap cursor-pointer select-none hover:text-white ${
+                              lbMetric === m.key ? 'text-white' : ''
+                            }`}
+                          >
+                            {m.label}
+                            {lbMetric === m.key ? ' ↓' : ''}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ranked.map((e, i) => (
+                        <tr key={e.nick} className="border-b border-white/5 last:border-0 hover:bg-white/5">
+                          <td className="p-3 font-bold">{medals[i] ?? i + 1}</td>
+                          <td className="p-3 font-medium whitespace-nowrap">{e.name}</td>
+                          {LB_METRICS.map((m) => {
+                            const v = metricValue(e.profile, m.key);
+                            return (
+                              <td
+                                key={m.key}
+                                className={`p-3 text-right tabular-nums whitespace-nowrap ${
+                                  lbMetric === m.key ? 'text-white font-semibold' : 'text-gray-300'
+                                }`}
+                              >
+                                {v != null ? m.fmt(v) : '—'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               );
             })()

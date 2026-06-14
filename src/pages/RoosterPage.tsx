@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaceitStats, LeetifyStats } from '@/types';
-import { TEAM_MEMBERS } from '@/utils/steamWhitelist';
+import { TEAM_MEMBERS, normalizeSteamId } from '@/utils/steamWhitelist';
 import { LEETIFY_CLUB_URL } from '@/utils/leetifyApi';
 import { db } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { useAuth } from '@/hooks/useAuth';
 
 const members = TEAM_MEMBERS;
 
@@ -24,16 +25,47 @@ type PremierDocData = {
   profile?: PremierProfile | null;
 };
 
+type PremierEntry = { nick: string; name: string; profile: PremierProfile };
+
+// Only this Steam ID can see the private Award Show planning view.
+const CR4MER_STEAM_ID = 'STEAM_0:1:125547';
+
+// Metrics for the Premier leaderboard (read from each player's stored profile).
+const LB_METRICS: { key: string; label: string; fmt: (v: number) => string }[] = [
+  { key: 'leetifyRating', label: 'Leetify Rating', fmt: (v) => v.toFixed(2) },
+  { key: 'kd', label: 'K/D', fmt: (v) => v.toFixed(2) },
+  { key: 'winRate', label: 'Win %', fmt: (v) => `${(v * 100).toFixed(1)}%` },
+  { key: 'hsRate', label: 'HS %', fmt: (v) => `${v.toFixed(1)}%` },
+  { key: 'gamesPlayed', label: 'Games', fmt: (v) => String(Math.round(v)) },
+];
+
+// Award categories for the private Award Show, auto-tallied from Premier stats.
+const AWARD_CATEGORIES: { key: string; emoji: string; title: string; fmt: (v: number) => string }[] = [
+  { key: 'leetifyRating', emoji: '🏆', title: 'Highest Leetify Rating', fmt: (v) => v.toFixed(2) },
+  { key: 'kd', emoji: '🔫', title: 'Top Fragger (K/D)', fmt: (v) => v.toFixed(2) },
+  { key: 'hsRate', emoji: '🎯', title: 'Best Aim (HS%)', fmt: (v) => `${v.toFixed(1)}%` },
+  { key: 'winRate', emoji: '📈', title: 'Best Win Rate', fmt: (v) => `${(v * 100).toFixed(1)}%` },
+  { key: 'mvps', emoji: '⭐', title: 'Most MVPs', fmt: (v) => String(Math.round(v)) },
+  { key: 'gamesPlayed', emoji: '🔥', title: 'Most Active', fmt: (v) => `${Math.round(v)} games` },
+];
+
 export default function RoosterPage() {
   const [stats, setStats] = useState<FaceitStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [weekRange, setWeekRange] = useState<'2W' | '10W' | '52W' | 'all-time'>('10W'); // Default to 10 weeks
-  const [activeSection, setActiveSection] = useState<'simple-stats' | 'recent-activity' | 'premier' | 'highlights'>('simple-stats');
+  const [activeSection, setActiveSection] = useState<
+    'simple-stats' | 'recent-activity' | 'premier' | 'leaderboard' | 'awards' | 'highlights'
+  >('simple-stats');
   const [leetifyStats, setLeetifyStats] = useState<LeetifyStats[]>([]);
+  const [premierEntries, setPremierEntries] = useState<PremierEntry[]>([]);
   const [leetifyLoading, setLeetifyLoading] = useState(false);
   const [leetifyError, setLeetifyError] = useState<string | null>(null);
+  const [lbMetric, setLbMetric] = useState<string>('leetifyRating');
+
+  const { user } = useAuth();
+  const isCr4mer = !!user?.steamId && normalizeSteamId(user.steamId) === CR4MER_STEAM_ID;
 
   const loadStats = async (isManualRefresh = false) => {
     if (isManualRefresh) {
@@ -145,11 +177,17 @@ export default function RoosterPage() {
           hsRate: p?.hsRate,
         };
       });
+      const entries: PremierEntry[] = members
+        .map((m) => ({ m, doc: byNick[m.faceitNickname.toLowerCase()] }))
+        .filter((x) => !!x.doc?.profile && (x.doc?.matches?.length ?? 0) > 0)
+        .map((x) => ({ nick: x.m.faceitNickname, name: x.m.name, profile: x.doc!.profile as PremierProfile }));
+      setPremierEntries(entries);
       setLeetifyStats(results);
     } catch (err: unknown) {
       console.error('Failed to load Premier stats from Firestore:', err);
       setLeetifyError('Failed to load Premier stats. Try again later.');
       setLeetifyStats(members.map((m) => ({ steamId: m.steamId, displayName: m.name, noData: true })));
+      setPremierEntries([]);
     } finally {
       setLeetifyLoading(false);
     }
@@ -163,7 +201,7 @@ export default function RoosterPage() {
   }, []);
 
   useEffect(() => {
-    if (leetifyStats.length === 0 && activeSection === 'premier') {
+    if (leetifyStats.length === 0 && ['premier', 'leaderboard', 'awards'].includes(activeSection)) {
       loadLeetifyStats();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -187,6 +225,17 @@ export default function RoosterPage() {
   const playersWithLast5Games = stats.filter(player => (player.last5Games || 0) > 0);
   const sortedByLast5Mvps = [...playersWithLast5Games].sort((a, b) => (b.last5Mvps || 0) - (a.last5Mvps || 0));
   const gamerOfTheLast5 = sortedByLast5Mvps[0];
+
+  // Premier leaderboard / award helpers (read numeric metrics from stored profiles).
+  const metricValue = (p: PremierProfile, key: string): number | null => {
+    const v = (p as Record<string, unknown>)[key];
+    return typeof v === 'number' && !Number.isNaN(v) ? v : null;
+  };
+  const rankedBy = (key: string): PremierEntry[] =>
+    premierEntries
+      .filter((e) => metricValue(e.profile, key) != null)
+      .sort((a, b) => (metricValue(b.profile, key) ?? 0) - (metricValue(a.profile, key) ?? 0));
+  const topBy = (key: string): PremierEntry | null => rankedBy(key)[0] ?? null;
 
   return (
     <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto px-4 md:px-0">
@@ -226,6 +275,28 @@ export default function RoosterPage() {
               >
                 Premier stats
               </button>
+              <button
+                onClick={() => setActiveSection('leaderboard')}
+                className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                  activeSection === 'leaderboard'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-neutral-800'
+                }`}
+              >
+                Premier Leaderboard
+              </button>
+              {isCr4mer && (
+                <button
+                  onClick={() => setActiveSection('awards')}
+                  className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                    activeSection === 'awards'
+                      ? 'bg-amber-600 text-white'
+                      : 'text-amber-300/80 hover:text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  🏆 Award Show
+                </button>
+              )}
               <button
                 onClick={() => setActiveSection('highlights')}
                 className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
@@ -305,6 +376,28 @@ export default function RoosterPage() {
               >
                 Premier
               </button>
+              <button
+                onClick={() => setActiveSection('leaderboard')}
+                className={`flex-1 min-w-[100px] px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                  activeSection === 'leaderboard'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-neutral-800'
+                }`}
+              >
+                Leaderboard
+              </button>
+              {isCr4mer && (
+                <button
+                  onClick={() => setActiveSection('awards')}
+                  className={`flex-1 min-w-[100px] px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                    activeSection === 'awards'
+                      ? 'bg-amber-600 text-white'
+                      : 'text-amber-300/80 hover:text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  🏆 Awards
+                </button>
+              )}
               <button
                 onClick={() => setActiveSection('highlights')}
                 className={`flex-1 min-w-[100px] px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
@@ -749,6 +842,116 @@ export default function RoosterPage() {
                 </a>
               </div>
             </>
+          )}
+        </div>
+      )}
+
+      {activeSection === 'leaderboard' && (
+        <div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+            <h2 className="text-xl sm:text-2xl font-bold">Premier Leaderboard</h2>
+            <button
+              type="button"
+              onClick={handleRefreshPremier}
+              disabled={leetifyLoading}
+              className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium disabled:opacity-50"
+            >
+              {leetifyLoading ? 'Loading…' : 'Refresh'}
+            </button>
+          </div>
+          <p className="text-gray-400 text-sm mb-4">Team ranked by recent CS2 Premier form (Leetify). Updates hourly.</p>
+
+          <div className="flex flex-wrap gap-2 mb-4">
+            {LB_METRICS.map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setLbMetric(m.key)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  lbMetric === m.key ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-gray-300 hover:bg-neutral-700'
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+
+          {leetifyLoading ? (
+            <div className="text-center py-12 text-gray-400">Loading Premier stats…</div>
+          ) : rankedBy(lbMetric).length === 0 ? (
+            <div className="border border-white/10 rounded-lg p-6 bg-neutral-900/50 text-center text-gray-400">
+              No Premier data yet. Make sure the Premier ingest has run and that players are linked on Leetify.
+            </div>
+          ) : (
+            (() => {
+              const metric = LB_METRICS.find((m) => m.key === lbMetric)!;
+              const ranked = rankedBy(lbMetric);
+              const max = metricValue(ranked[0].profile, lbMetric) ?? 1;
+              const medals = ['🥇', '🥈', '🥉'];
+              return (
+                <div className="border border-white/10 rounded-lg bg-neutral-900/50 backdrop-blur-sm divide-y divide-white/10">
+                  {ranked.map((e, i) => {
+                    const v = metricValue(e.profile, lbMetric)!;
+                    const pct = max > 0 ? Math.max(4, (v / max) * 100) : 0;
+                    return (
+                      <div key={e.nick} className="flex items-center gap-3 sm:gap-4 p-3">
+                        <span className="w-6 text-center text-sm font-bold">{medals[i] ?? i + 1}</span>
+                        <span className="w-24 sm:w-36 truncate font-medium">{e.name}</span>
+                        <div className="flex-1 h-5 bg-neutral-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="w-20 text-right font-semibold tabular-nums">{metric.fmt(v)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()
+          )}
+        </div>
+      )}
+
+      {isCr4mer && activeSection === 'awards' && (
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold mb-1">
+            🏆 Award Show <span className="text-amber-300/80 text-base">(private)</span>
+          </h2>
+          <p className="text-gray-400 text-sm mb-1">
+            Only you (Cr4mer) can see this. Auto-tallied from current Premier stats to seed your yearly awards.
+          </p>
+          <p className="text-xs text-amber-300/70 mb-5">
+            Based on recent form currently in Firestore (last ~30 Premier matches per player). Full-year accumulation can be
+            added later via periodic snapshots.
+          </p>
+          {leetifyLoading ? (
+            <div className="text-center py-12 text-gray-400">Loading Premier stats…</div>
+          ) : premierEntries.length === 0 ? (
+            <div className="border border-white/10 rounded-lg p-6 bg-neutral-900/50 text-center text-gray-400">
+              No Premier data to tally yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {AWARD_CATEGORIES.map((cat) => {
+                const top = topBy(cat.key);
+                const v = top ? metricValue(top.profile, cat.key) : null;
+                return (
+                  <div
+                    key={cat.key}
+                    className="bg-gradient-to-br from-amber-900/20 to-neutral-900/40 border border-amber-500/30 rounded-lg p-4"
+                  >
+                    <div className="text-2xl mb-1">{cat.emoji}</div>
+                    <div className="text-xs font-semibold text-amber-300/90 uppercase tracking-wide mb-2">{cat.title}</div>
+                    {top && v != null ? (
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-bold text-lg truncate">{top.name}</span>
+                        <span className="text-amber-200 font-semibold tabular-nums">{cat.fmt(v)}</span>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500">No data</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       )}

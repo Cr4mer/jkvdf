@@ -28,7 +28,12 @@ type PremierMatch = {
   assists?: number | null;
   map?: string | null;
 };
-type PremierDoc = { id: string; faceitNickname?: string; matches?: PremierMatch[] };
+type PremierDoc = {
+  id: string;
+  faceitNickname?: string;
+  matches?: PremierMatch[];
+  profile?: { gamesInLast30Days?: number } | null;
+};
 
 export default function RoosterPreview() {
   const [stats, setStats] = useState<FaceitStats[]>([]);
@@ -95,11 +100,27 @@ export default function RoosterPreview() {
   }, []);
 
   // Calculate most active player(s) - MUST be before any returns
+  // Premier games in the last 30 days, by FACEIT nickname (from the ingest's profile).
+  const premierGames30ByNick = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const d of premierDocs ?? []) {
+      const nick = (d.faceitNickname ?? d.id ?? '').toLowerCase();
+      const g = d.profile?.gamesInLast30Days;
+      if (nick && typeof g === 'number') map[nick] = g;
+    }
+    return map;
+  }, [premierDocs]);
+
+  // Total recent activity = FACEIT + Premier games in the last 30 days.
+  const games30 = (p: FaceitStats): number =>
+    (p.gamesInLast30Days || 0) + (premierGames30ByNick[p.faceitNickname.toLowerCase()] || 0);
+
   const mostActivePlayers = useMemo(() => {
     if (stats.length === 0) return [];
-    const maxGames = Math.max(...stats.map((p) => p.gamesInLast30Days || 0));
-    return stats.filter((p) => (p.gamesInLast30Days || 0) === maxGames);
-  }, [stats]);
+    const maxGames = Math.max(...stats.map(games30));
+    return stats.filter((p) => games30(p) === maxGames);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats, premierGames30ByNick]);
 
   // FACEIT nickname (lowercased) -> that player's Premier matches from Firestore.
   const premierByNick = useMemo(() => {
@@ -227,7 +248,7 @@ export default function RoosterPreview() {
                   <div key={player.playerId} className="flex items-center justify-between">
                     <span className="font-semibold text-green-300">{player.faceitNickname}</span>
                     <span className="text-sm text-gray-300">
-                      {player.gamesInLast30Days || 0} games in last 30 days
+                      {games30(player)} games in last 30 days
                     </span>
                   </div>
                 ))}

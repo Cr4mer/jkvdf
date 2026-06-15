@@ -166,12 +166,18 @@ function mapMatch(m, steamId64) {
 // Aggregate "recent form" Premier stats from up to the player's last 30 matches,
 // for the Performance Center "Premier stats" tab (mirrors the FACEIT stat set).
 function aggregateProfile(rawMatches, steamId64) {
-  const recent = (Array.isArray(rawMatches) ? rawMatches : [])
+  const withTime = (Array.isArray(rawMatches) ? rawMatches : [])
     .map((m) => ({ m, mine: findPlayerStats(m, steamId64), iso: finishedAtIso(m) }))
-    .filter((x) => x.mine && x.iso)
+    .filter((x) => x.mine && x.iso);
+  if (withTime.length === 0) return null;
+
+  const now = Date.now();
+  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+  const gamesInLast30Days = withTime.filter((x) => now - new Date(x.iso).getTime() <= THIRTY_DAYS_MS).length;
+
+  const recent = [...withTime]
     .sort((a, b) => new Date(b.iso).getTime() - new Date(a.iso).getTime())
     .slice(0, 30);
-  if (recent.length === 0) return null;
 
   let kills = 0;
   let deaths = 0;
@@ -197,6 +203,7 @@ function aggregateProfile(rawMatches, steamId64) {
   const games = recent.length;
   return {
     gamesPlayed: games,
+    gamesInLast30Days,
     winRate: games ? wins / games : 0, // 0..1 (UI multiplies by 100)
     kd: deaths ? kills / deaths : kills,
     avgKills: games ? kills / games : 0,

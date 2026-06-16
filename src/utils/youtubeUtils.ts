@@ -1,12 +1,15 @@
 // Extract YouTube video ID from various YouTube URL formats
 export function extractYouTubeVideoId(url: string): string | null {
   const patterns = [
-    // Standard watch URLs
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    // Short URLs
+    // Standard watch URLs, share URLs (youtu.be), embed URLs, and YouTube Shorts.
+    // Shorts embed fine via /embed/{id} since they share the regular 11-char video ID.
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([^&\n?#]+)/,
+    // Short share URLs (youtu.be)
     /youtu\.be\/([^&\n?#]+)/,
     // Embed URLs
     /youtube\.com\/embed\/([^&\n?#]+)/,
+    // YouTube Shorts (vertical short-form video)
+    /youtube\.com\/shorts\/([^&\n?#]+)/,
     // Mobile URLs
     /youtube\.com\/v\/([^&\n?#]+)/,
   ];
@@ -19,6 +22,13 @@ export function extractYouTubeVideoId(url: string): string | null {
   }
 
   return null;
+}
+
+// True if the URL is a YouTube Shorts URL (vertical 9:16 short-form video).
+// The extracted videoId is the same, but knowing the source lets us hint at
+// aspect ratio in the UI if we ever want to render Shorts in a 9:16 frame.
+export function isYouTubeShortsUrl(url: string): boolean {
+  return /youtube\.com\/shorts\//i.test(url);
 }
 
 // Extract timestamp from YouTube URL

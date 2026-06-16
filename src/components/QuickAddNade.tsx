@@ -153,12 +153,12 @@ export default function QuickAddNade() {
               type="url"
               value={youtubeUrl}
               onChange={(e) => setYoutubeUrl(e.target.value)}
-              placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=31s"
+              placeholder="https://www.youtube.com/watch?v=… or https://youtube.com/shorts/…"
               className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
             <p className="text-xs text-gray-400 mt-1">
-              Supports: youtube.com/watch?v=, youtu.be/, youtube.com/embed/, etc.
+              Supports: youtube.com/watch?v=, youtu.be/, youtube.com/shorts/, youtube.com/embed/, etc.
             </p>
           </div>
           

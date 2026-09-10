@@ -1,0 +1,22 @@
+{
+  "name": "jkvdf-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ladder A draft: teams, nade book with a per-team quota, scheduling, Lemon Squeezy billing. No demo parsing.",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/node": "^22.20.2",
+    "typescript": "^7.0.2"
+  }
+}

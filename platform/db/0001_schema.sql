@@ -25,10 +25,12 @@ insert into plans (id, name, nade_limit, features, price_month_eur, price_year_e
 -- ---------------------------------------------------------------- users
 -- id equals auth.users.id on Supabase; rows are created by 0004_supabase_auth.sql.
 create table profiles (
-  id           uuid primary key,
-  display_name text not null default '',
-  avatar_url   text,
-  created_at   timestamptz not null default now()
+  id                     uuid primary key,
+  display_name           text not null default '',
+  avatar_url             text,
+  tour_seen_at           timestamptz,   -- coach-mark tour has been shown (or skipped)
+  checklist_dismissed_at timestamptz,   -- user hid the getting-started card
+  created_at             timestamptz not null default now()
 );
 
 -- ---------------------------------------------------------------- teams
@@ -64,10 +66,10 @@ create table team_invites (
 );
 
 -- ---------------------------------------------------------------- nades
+-- A nade belongs to exactly one team and is visible only to that team.
 create type nade_type       as enum ('smoke', 'flash', 'molotov', 'he', 'decoy');
 create type nade_side       as enum ('t', 'ct', 'both');
 create type nade_throw      as enum ('stand', 'crouch', 'jump', 'walk_jump', 'run_jump', 'other');
-create type nade_visibility as enum ('team', 'public');
 
 create table nades (
   id            uuid primary key default gen_random_uuid(),
@@ -82,7 +84,6 @@ create table nades (
   from_pos      jsonb,      -- {"x": .., "y": ..} radar-image coordinates of the throw spot
   to_pos        jsonb,      -- {"x": .., "y": ..} where it lands
   setpos        text check (char_length(setpos) <= 200),  -- "setpos ...; setang ..." for practice
-  visibility    nade_visibility not null default 'team',
   video_key     text,       -- object key in R2; null until the upload completes
   video_bytes   bigint  check (video_bytes is null or video_bytes > 0),
   video_seconds numeric(6,2) check (video_seconds is null or video_seconds > 0),
@@ -91,7 +92,6 @@ create table nades (
   updated_at    timestamptz not null default now()
 );
 create index nades_team_map_idx   on nades (team_id, map);
-create index nades_public_map_idx on nades (map) where visibility = 'public';
 
 -- ---------------------------------------------------------------- scheduling
 create type session_type as enum ('prac', 'scrim', 'nade_practice', 'vod_review', 'other');

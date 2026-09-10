@@ -60,8 +60,8 @@ create policy invites_read   on team_invites for select using (is_team_owner(tea
 create policy invites_insert on team_invites for insert with check (is_team_owner(team_id) and created_by = auth.uid());
 create policy invites_delete on team_invites for delete using (is_team_owner(team_id));
 
--- nades: the team edits its book; public nades are readable by anyone signed in
-create policy nades_read   on nades for select using (visibility = 'public' or is_team_member(team_id));
+-- nades: private to the team; there is no public library
+create policy nades_read   on nades for select using (is_team_member(team_id));
 create policy nades_insert on nades for insert with check (is_team_member(team_id) and created_by = auth.uid());
 create policy nades_update on nades for update using (is_team_member(team_id)) with check (is_team_member(team_id));
 create policy nades_delete on nades for delete using (created_by = auth.uid() or is_team_owner(team_id));

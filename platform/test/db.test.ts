@@ -43,7 +43,7 @@ test('quota: 30 free, blocked at 31, unlimited on Team, read-only after downgrad
   });
 });
 
-test('membership: invites work, members can upload, outsiders see only public nades', async () => {
+test('membership: invites work, members can upload, outsiders see nothing, onboarding view', async () => {
   const db = await freshDb();
   const team = await createTeam(db, USER_A, 'jkvdf');
 
@@ -64,11 +64,22 @@ test('membership: invites work, members can upload, outsiders see only public na
     await assert.rejects(addNade(db, team, 'intruder'), /team_not_found|row-level security/);
   });
 
-  await asUser(db, USER_A, () =>
-    db.query(`update nades set visibility = 'public' where team_id = $1`, [team]));
-  await asUser(db, USER_C, async () => {
-    assert.equal(await nadeCount(db, team), 1);      // public nade is visible to anyone signed in
+  // Onboarding: checklist counts come from the team_onboarding view, members only.
+  await asUser(db, USER_A, async () => {
+    const r = await db.query<{ member_count: number; nade_count: number; session_count: number }>(
+      `select member_count, nade_count, session_count from team_onboarding where team_id = $1`, [team]);
+    assert.deepEqual(r.rows[0], { member_count: 2, nade_count: 1, session_count: 0 });
+    await db.query(`update profiles set tour_seen_at = now() where id = auth.uid()`);
   });
+  await asUser(db, USER_C, async () => {
+    const r = await db.query(`select team_id from team_onboarding where team_id = $1`, [team]);
+    assert.equal(r.rows.length, 0);
+    const upd = await db.query(`update profiles set tour_seen_at = null where id = $1`, [USER_A]);
+    assert.equal(upd.affectedRows ?? 0, 0);            // cannot touch someone else's flags
+  });
+  const flag = await db.query<{ seen: boolean }>(
+    `select tour_seen_at is not null as seen from profiles where id = $1`, [USER_A]);
+  assert.equal(flag.rows[0].seen, true);
 
   // Owner can hand billing to a member; a stranger cannot.
   await asUser(db, USER_A, () => db.query(`select transfer_billing($1, $2)`, [team, USER_B]));

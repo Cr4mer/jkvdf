@@ -50,6 +50,18 @@ select t.id      as team_id,
   from teams t
   join plans p on p.id = t.plan_id;
 
+-- Input for the getting-started checklist. Derived from real rows, so there is
+-- no onboarding state to keep in sync. Members see their own team only; the
+-- invite count is only visible to owners (RLS on team_invites).
+create view team_onboarding with (security_invoker = true) as
+select t.id as team_id,
+       (select count(*) from team_members m where m.team_id = t.id)::integer as member_count,
+       (select count(*) from nades n where n.team_id = t.id)::integer        as nade_count,
+       (select count(*) from sessions s where s.team_id = t.id)::integer     as session_count,
+       (select count(*) from team_invites i
+         where i.team_id = t.id and i.expires_at > now() and i.uses < i.max_uses)::integer as active_invite_count
+  from teams t;
+
 -- ---------------------------------------------------------------- plan derivation
 -- The webhook only upserts subscriptions. These functions decide the plan.
 -- Access continues while the provider says: on_trial, active, past_due (card is

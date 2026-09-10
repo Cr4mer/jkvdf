@@ -13,5 +13,5 @@
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true
   },
-  "include": ["billing/**/*.ts", "test/**/*.ts"]
+  "include": ["billing/**/*.ts", "onboarding/**/*.ts", "test/**/*.ts"]
 }

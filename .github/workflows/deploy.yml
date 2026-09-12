@@ -34,8 +34,41 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
+      # Vite inlines VITE_* vars at BUILD time. They live in a gitignored .env.local
+      # locally, so CI must supply them or the bundle ships with an undefined Firebase
+      # config and the app dies on load with auth/invalid-api-key. Fail loudly instead.
+      - name: Write client env (Firebase web config)
+        env:
+          VITE_ENV_FILE: ${{ secrets.VITE_ENV_FILE }}
+        run: |
+          if [ -z "$VITE_ENV_FILE" ]; then
+            echo "::error::VITE_ENV_FILE secret is not set. Without it the build ships an undefined Firebase config and the live site breaks (auth/invalid-api-key). Add the contents of your local .env.local as the VITE_ENV_FILE repo secret." >&2
+            exit 1
+          fi
+          printf '%s\n' "$VITE_ENV_FILE" > .env.production
+          for key in VITE_FIREBASE_API_KEY VITE_FIREBASE_PROJECT_ID VITE_FIREBASE_APP_ID VITE_FIREBASE_AUTH_DOMAIN; do
+            if ! grep -qE "^${key}=.+" .env.production; then
+              echo "::error::${key} is missing or empty in the VITE_ENV_FILE secret." >&2
+              exit 1
+            fi
+          done
+          echo "Client env OK ($(grep -c '^VITE_' .env.production) VITE_* vars)"
+
       - name: Build
         run: npm run build
+
+      # Hard gate: never publish a bundle whose Firebase config failed to inline.
+      - name: Verify Firebase config was bundled
+        run: |
+          if ! grep -rqF "jkvdf-d185b" dist/assets/*.js; then
+            echo "::error::Built bundle contains no Firebase project id — the config did not inline. Refusing to deploy a broken site." >&2
+            exit 1
+          fi
+          if grep -rqF "apiKey:void 0" dist/assets/*.js || grep -rqF "apiKey:undefined" dist/assets/*.js; then
+            echo "::error::Built bundle has an undefined Firebase apiKey. Refusing to deploy a broken site." >&2
+            exit 1
+          fi
+          echo "Firebase config inlined OK"
 
       - name: Show what will be deployed
         run: |

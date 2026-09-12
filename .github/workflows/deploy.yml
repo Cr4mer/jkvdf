@@ -1,0 +1,63 @@
+name: Deploy webapp (Firebase Hosting)
+
+# Every push to master builds the site and deploys it to Firebase Hosting, so the
+# live site always matches master — no local git, build, or firebase CLI needed.
+#
+# Deploys HOSTING ONLY on purpose:
+#   - Functions can't deploy on the Spark plan and would abort the whole deploy.
+#   - Firestore rules need extra IAM permissions; deploy those manually when they
+#     change (firebase deploy --only firestore:rules).
+#
+# Requires the FIREBASE_SERVICE_ACCOUNT repo secret (same one the Premier ingest
+# uses). That service account needs Firebase Hosting Admin (or Editor).
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-hosting
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Show what will be deployed
+        run: |
+          echo "Files in dist:"
+          find dist -type f | sort
+          echo "Total: $(find dist -type f | wc -l) files"
+
+      - name: Write service account credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not set" >&2
+            exit 1
+          fi
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+
+      - name: Deploy to Firebase Hosting
+        run: >
+          npx firebase deploy
+          --only hosting
+          --project jkvdf-d185b
+          --non-interactive
+          --message "${{ github.sha }}"

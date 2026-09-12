@@ -2,10 +2,11 @@ import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { collection, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
-import { Nade, Cs2Map } from '@/types';
+import { Nade, Cs2Map, CHEAT_SHEET_TYPE, isCheatSheet } from '@/types';
 import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 import NadeCard from '@/components/NadeCard';
 import YouTubePlayer from '@/components/YouTubePlayer';
+import ImageLightbox from '@/components/ImageLightbox';
 
 export default function NadeGalleryPage() {
   const { mapId } = useParams();
@@ -38,6 +39,7 @@ export default function NadeGalleryPage() {
     { value: 'molotov', label: 'Molotov', image: '/molo.png' },
     { value: 'he', label: 'HE Grenade', image: '/HE.png' },
     { value: 'sæt', label: 'Sæt', image: null, noIcon: false },
+    { value: CHEAT_SHEET_TYPE, label: 'Cheat Sheet', image: null, noIcon: false, emoji: '📋' },
   ];
 
   // Side options
@@ -86,10 +88,14 @@ export default function NadeGalleryPage() {
   // Filter nades based on selected types and sides
   const filteredNades = nades?.filter(nade => {
     const typeMatch = selectedTypes.has('all') || selectedTypes.has(nade.type);
-    // 'both'-sided nades apply to CT and T, so show them whenever either side is selected.
-    const sideMatch = nade.side === 'both'
-      ? (selectedSides.has('ct') || selectedSides.has('t'))
-      : selectedSides.has(nade.side || 'ct');
+    // Cheat sheets are reference material, not side-specific, so the side filter
+    // doesn't apply to them. 'both'-sided nades apply to CT and T, so show them
+    // whenever either side is selected.
+    const sideMatch = isCheatSheet(nade)
+      ? true
+      : nade.side === 'both'
+        ? (selectedSides.has('ct') || selectedSides.has('t'))
+        : selectedSides.has(nade.side || 'ct');
     return typeMatch && sideMatch;
   }) || [];
 
@@ -134,7 +140,10 @@ export default function NadeGalleryPage() {
                 <img src={type.image} alt={type.label} className="w-16 h-16 object-contain" />
               )}
               {type.value !== 'sæt' && type.value !== 'all' && !type.image && !type.noIcon && (
-                <span className="text-3xl">🎬</span>
+                <span className="text-3xl">{type.emoji ?? '🎬'}</span>
+              )}
+              {type.value === CHEAT_SHEET_TYPE && (
+                <span className="text-sm font-medium">{type.label}</span>
               )}
             </label>
           ))}
@@ -184,7 +193,7 @@ export default function NadeGalleryPage() {
                     <img src={type.image} alt={type.label} className="w-10 h-10 object-contain" />
                   )}
                   {type.value !== 'sæt' && type.value !== 'all' && !type.image && !type.noIcon && (
-                    <span className="text-2xl">🎬</span>
+                    <span className="text-2xl">{type.emoji ?? '🎬'}</span>
                   )}
                   {type.value !== 'all' && type.value !== 'sæt' && (
                     <span className="text-xs text-center">{type.label}</span>
@@ -266,7 +275,13 @@ export default function NadeGalleryPage() {
           </div>
         )}
 
-        {active && <YouTubePlayer nade={active} onClose={() => setActive(null)} />}
+        {/* Cheat sheets open in a full-resolution image viewer; videos in the YouTube player. */}
+        {active &&
+          (isCheatSheet(active) ? (
+            <ImageLightbox nade={active} onClose={() => setActive(null)} />
+          ) : (
+            <YouTubePlayer nade={active} onClose={() => setActive(null)} />
+          ))}
       </div>
     </div>
   );

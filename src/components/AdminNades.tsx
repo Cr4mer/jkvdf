@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { collection, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
-import { Nade, Cs2Map } from '@/types';
+import { Nade, Cs2Map, CHEAT_SHEET_TYPE } from '@/types';
 import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 import { generateTimestampedThumbnailUrl } from '@/utils/youtubeUtils';
 import NadeVideoPreview from './NadeVideoPreview';
@@ -32,6 +32,7 @@ export default function AdminNades() {
     type: 'smoke',
     side: 'both',
     youtubeVideoId: '',
+    imageUrl: '',
     startSeconds: 0,
     endSeconds: 0,
     thumbnailUrl: '',
@@ -73,7 +74,7 @@ export default function AdminNades() {
       setError('Nade name must be 200 characters or less');
       return;
     }
-    const validTypes = ['smoke', 'instant_smoke', 'flash', 'molotov', 'he', 'decoy', 'sæt'];
+    const validTypes = ['smoke', 'instant_smoke', 'flash', 'molotov', 'he', 'decoy', 'sæt', CHEAT_SHEET_TYPE];
     if (!validTypes.includes(formData.type)) {
       setError('Invalid nade type');
       return;
@@ -83,17 +84,31 @@ export default function AdminNades() {
       setError('Invalid side');
       return;
     }
-    if (!formData.youtubeVideoId || formData.youtubeVideoId.trim().length === 0) {
-      setError('YouTube video ID is required');
-      return;
-    }
-    if (!/^[a-zA-Z0-9_-]{11}$/.test(formData.youtubeVideoId)) {
-      setError('YouTube video ID must be a valid 11-character ID');
-      return;
-    }
-    if (typeof formData.startSeconds !== 'number' || formData.startSeconds < 0) {
-      setError('Start seconds must be a non-negative number');
-      return;
+
+    // Cheat sheets are image-only: they need an image URL instead of a video.
+    const isSheet = formData.type === CHEAT_SHEET_TYPE;
+    if (isSheet) {
+      if (!formData.imageUrl || formData.imageUrl.trim().length === 0) {
+        setError('Image URL is required for a cheat sheet (e.g. /mirage-cheatsheet.jpg)');
+        return;
+      }
+      if (formData.imageUrl.length > 500) {
+        setError('Image URL must be 500 characters or less');
+        return;
+      }
+    } else {
+      if (!formData.youtubeVideoId || formData.youtubeVideoId.trim().length === 0) {
+        setError('YouTube video ID is required');
+        return;
+      }
+      if (!/^[a-zA-Z0-9_-]{11}$/.test(formData.youtubeVideoId)) {
+        setError('YouTube video ID must be a valid 11-character ID');
+        return;
+      }
+      if (typeof formData.startSeconds !== 'number' || formData.startSeconds < 0) {
+        setError('Start seconds must be a non-negative number');
+        return;
+      }
     }
     if (formData.endSeconds !== undefined && formData.endSeconds !== 0 && 
         (typeof formData.endSeconds !== 'number' || formData.endSeconds < 0)) {
@@ -102,25 +117,38 @@ export default function AdminNades() {
     }
 
     try {
-      // Sanitize inputs
-      const data: any = {
-        name: formData.name.trim().substring(0, 200),
-        type: formData.type,
-        side: formData.side,
-        youtubeVideoId: formData.youtubeVideoId.trim().substring(0, 20),
-        startSeconds: formData.startSeconds,
-        thumbnailUrl: (formData.thumbnailUrl || generateThumbnailUrl(formData.youtubeVideoId, formData.startSeconds)).substring(0, 500),
-        _adminSteamId: normalizeSteamId(user.steamId), // Include admin Steam ID for Firestore rules
-      };
+      // Sanitize inputs. Cheat sheets store an image instead of a video; the image
+      // doubles as the card thumbnail so the shared thumbnailUrl field stays filled.
+      const data: any = isSheet
+        ? {
+            name: formData.name.trim().substring(0, 200),
+            type: CHEAT_SHEET_TYPE,
+            side: formData.side,
+            imageUrl: formData.imageUrl.trim().substring(0, 500),
+            thumbnailUrl: (formData.thumbnailUrl || formData.imageUrl).trim().substring(0, 500),
+            _adminSteamId: normalizeSteamId(user.steamId),
+          }
+        : {
+            name: formData.name.trim().substring(0, 200),
+            type: formData.type,
+            side: formData.side,
+            youtubeVideoId: formData.youtubeVideoId.trim().substring(0, 20),
+            startSeconds: formData.startSeconds,
+            thumbnailUrl: (formData.thumbnailUrl || generateThumbnailUrl(formData.youtubeVideoId, formData.startSeconds)).substring(0, 500),
+            _adminSteamId: normalizeSteamId(user.steamId), // Include admin Steam ID for Firestore rules
+          };
 
-      // Only add endSeconds if it's greater than 0
-      if (formData.endSeconds > 0) {
-        data.endSeconds = formData.endSeconds;
-      }
+      // Video-only extras
+      if (!isSheet) {
+        // Only add endSeconds if it's greater than 0
+        if (formData.endSeconds > 0) {
+          data.endSeconds = formData.endSeconds;
+        }
 
-      // Only add throwMethod if it's provided and not empty
-      if (formData.throwMethod && formData.throwMethod.length > 0) {
-        data.throwMethod = formData.throwMethod.filter((m: string) => typeof m === 'string' && m.length > 1);
+        // Only add throwMethod if it's provided and not empty
+        if (formData.throwMethod && formData.throwMethod.length > 0) {
+          data.throwMethod = formData.throwMethod.filter((m: string) => typeof m === 'string' && m.length > 1);
+        }
       }
 
       // Tags: comma-separated string -> array (max 20, each trimmed, non-empty)
@@ -142,6 +170,7 @@ export default function AdminNades() {
         type: 'smoke',
         side: 'both',
         youtubeVideoId: '',
+        imageUrl: '',
         startSeconds: 0,
         endSeconds: 0,
         thumbnailUrl: '',
@@ -163,8 +192,9 @@ export default function AdminNades() {
       name: nade.name,
       type: nade.type,
       side: nade.side || 'both',
-      youtubeVideoId: nade.youtubeVideoId,
-      startSeconds: nade.startSeconds,
+      youtubeVideoId: nade.youtubeVideoId ?? '',
+      imageUrl: nade.imageUrl ?? '',
+      startSeconds: nade.startSeconds ?? 0,
       endSeconds: nade.endSeconds || 0,
       thumbnailUrl: nade.thumbnailUrl,
       throwMethod: Array.isArray(nade.throwMethod) ? nade.throwMethod : (nade.throwMethod ? [nade.throwMethod] : []),
@@ -223,6 +253,7 @@ export default function AdminNades() {
                   type: 'smoke',
                   side: 'both',
                   youtubeVideoId: '',
+                  imageUrl: '',
                   startSeconds: 0,
                   endSeconds: 0,
                   thumbnailUrl: '',
@@ -273,10 +304,28 @@ export default function AdminNades() {
                       <option value="he">HE Grenade</option>
                       <option value="decoy">Decoy</option>
                       <option value="sæt">Sæt</option>
+                      <option value={CHEAT_SHEET_TYPE}>Cheat Sheet (image)</option>
                     </select>
                   </div>
                 </div>
 
+                {formData.type === CHEAT_SHEET_TYPE ? (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Image URL</label>
+                    <input
+                      type="text"
+                      value={formData.imageUrl}
+                      onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                      placeholder="/mirage-cheatsheet.jpg"
+                      className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      A cheat sheet is just a picture — no video needed. Use a local path from
+                      <code className="mx-1">public/</code> (e.g. <code>/mirage-cheatsheet.jpg</code>) or a full https:// URL.
+                    </p>
+                  </div>
+                ) : (
                 <div>
                   <label className="block text-sm font-medium mb-2">YouTube Video ID</label>
                   <input
@@ -291,6 +340,7 @@ export default function AdminNades() {
                     Just the ID part from https://www.youtube.com/watch?v=VIDEO_ID
                   </p>
                 </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Side</label>
@@ -306,6 +356,7 @@ export default function AdminNades() {
                   </select>
                 </div>
 
+                {formData.type !== CHEAT_SHEET_TYPE && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Start Seconds</label>
@@ -356,6 +407,7 @@ export default function AdminNades() {
                     )}
                   </div>
                 </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Custom Thumbnail URL (optional)</label>
@@ -425,6 +477,7 @@ export default function AdminNades() {
                         type: 'smoke',
                         side: 'both',
                         youtubeVideoId: '',
+                        imageUrl: '',
                         startSeconds: 0,
                         endSeconds: 0,
                         thumbnailUrl: '',
@@ -445,20 +498,29 @@ export default function AdminNades() {
           
           <div className="grid gap-4">
                          {nades?.map((nade) => {
-               const thumbnailUrl = nade.thumbnailUrl || getOptimizedYouTubeThumbnail(nade.youtubeVideoId);
-               
+               const sheet = nade.type === CHEAT_SHEET_TYPE;
+               const thumbnailUrl = nade.thumbnailUrl || getOptimizedYouTubeThumbnail(nade.youtubeVideoId ?? '');
+
                return (
                  <div key={nade.id} className="bg-neutral-800 rounded-lg p-4 flex items-center justify-between">
                    <div className="flex items-center gap-4">
                     <div className="relative w-24 h-16 overflow-hidden rounded">
-                      <NadeVideoPreview
-                        id={nade.id || `${nade.youtubeVideoId}-${nade.startSeconds}`}
-                        videoId={nade.youtubeVideoId}
-                        startSeconds={nade.startSeconds}
-                        endSeconds={nade.endSeconds}
-                        className="w-full h-full"
-                        thumbnailUrl={thumbnailUrl}
-                      />
+                      {sheet ? (
+                        <img
+                          src={nade.imageUrl || thumbnailUrl}
+                          alt={nade.name}
+                          className="w-full h-full object-contain bg-neutral-950"
+                        />
+                      ) : (
+                        <NadeVideoPreview
+                          id={nade.id || `${nade.youtubeVideoId}-${nade.startSeconds}`}
+                          videoId={nade.youtubeVideoId ?? ''}
+                          startSeconds={nade.startSeconds}
+                          endSeconds={nade.endSeconds}
+                          className="w-full h-full"
+                          thumbnailUrl={thumbnailUrl}
+                        />
+                      )}
                     </div>
                     <div>
                       <h3 className="font-medium">{nade.name}</h3>

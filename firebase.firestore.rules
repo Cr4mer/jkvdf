@@ -18,28 +18,49 @@ service cloud.firestore {
              data.thumbnailUrl.size() <= 500;
     }
     
-    // Helper function to validate nade data structure
-    function isValidNade(data) {
-      return data.keys().hasAll(['name', 'type', 'side', 'youtubeVideoId', 'startSeconds', 'thumbnailUrl']) &&
-             data.name is string && 
-             data.name.size() > 0 && 
+    // Fields shared by every nade entry (video or image-only cheat sheet)
+    function hasValidNadeBase(data) {
+      return data.keys().hasAll(['name', 'type', 'side', 'thumbnailUrl']) &&
+             data.name is string &&
+             data.name.size() > 0 &&
              data.name.size() <= 200 &&
-             data.type is string && 
-             data.type in ['smoke', 'instant_smoke', 'flash', 'molotov', 'he', 'decoy', 'sæt'] &&
-             data.side is string && 
+             data.side is string &&
              data.side in ['ct', 't', 'both'] &&
-             data.youtubeVideoId is string && 
-             data.youtubeVideoId.size() > 0 && 
-             data.youtubeVideoId.size() <= 20 &&
-             data.startSeconds is int && 
-             data.startSeconds >= 0 &&
-             (!('endSeconds' in data) || (data.endSeconds is int && data.endSeconds >= 0)) &&
-             data.thumbnailUrl is string && 
-             data.thumbnailUrl.size() > 0 && 
+             data.thumbnailUrl is string &&
+             data.thumbnailUrl.size() > 0 &&
              data.thumbnailUrl.size() <= 500 &&
              (!('tags' in data) || (data.tags is list && data.tags.size() <= 20));
     }
-    
+
+    // Video entries require a YouTube video id and a start time
+    function isValidVideoNade(data) {
+      return hasValidNadeBase(data) &&
+             data.type is string &&
+             data.type in ['smoke', 'instant_smoke', 'flash', 'molotov', 'he', 'decoy', 'sæt'] &&
+             data.keys().hasAll(['youtubeVideoId', 'startSeconds']) &&
+             data.youtubeVideoId is string &&
+             data.youtubeVideoId.size() > 0 &&
+             data.youtubeVideoId.size() <= 20 &&
+             data.startSeconds is int &&
+             data.startSeconds >= 0 &&
+             (!('endSeconds' in data) || (data.endSeconds is int && data.endSeconds >= 0));
+    }
+
+    // Image-only entries (cheat sheets) carry an image instead of a video
+    function isValidCheatSheet(data) {
+      return hasValidNadeBase(data) &&
+             data.type == 'cheatsheet' &&
+             data.keys().hasAll(['imageUrl']) &&
+             data.imageUrl is string &&
+             data.imageUrl.size() > 0 &&
+             data.imageUrl.size() <= 500;
+    }
+
+    // Helper function to validate nade data structure
+    function isValidNade(data) {
+      return isValidVideoNade(data) || isValidCheatSheet(data);
+    }
+
     // Helper function to validate training session data
     function isValidTrainingSession(data) {
       return data.keys().hasAll(['date', 'createdBy', 'createdByName', 'createdAt', 'responses']) &&

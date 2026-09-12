@@ -8,16 +8,23 @@ export type Cs2Map = {
 export type Nade = {
   id: string;
   name: string;
-  type: 'smoke' | 'instant_smoke' | 'flash' | 'molotov' | 'he' | 'decoy' | string;
+  type: 'smoke' | 'instant_smoke' | 'flash' | 'molotov' | 'he' | 'decoy' | 'cheatsheet' | string;
   side: 'ct' | 't' | 'both';
   thumbnailUrl: string;
-  youtubeVideoId: string;
+  /** Required for video entries; absent for image-only entries (type 'cheatsheet'). */
+  youtubeVideoId?: string;
+  /** Full-resolution image for image-only entries (type 'cheatsheet'). */
+  imageUrl?: string;
   startSeconds: number;
   endSeconds?: number;
   throwMethod?: string[];
   /** Optional tags for categorizing nades (e.g. "execute", "retake", "one-way") */
   tags?: string[];
 };
+
+/** Image-only entries (cheat sheets) have no video and open in an image lightbox. */
+export const CHEAT_SHEET_TYPE = 'cheatsheet';
+export const isCheatSheet = (nade: Pick<Nade, 'type'>): boolean => nade.type === CHEAT_SHEET_TYPE;
 
 export type Member = {
   id: string;

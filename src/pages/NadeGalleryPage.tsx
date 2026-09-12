@@ -143,7 +143,10 @@ export default function NadeGalleryPage() {
 
       {/* Main Content */}
       <div className="flex-1">
-        <h1 className="text-xl lg:text-2xl font-semibold capitalize mb-4 bg-neutral-900/50 backdrop-blur-sm p-4 rounded-lg border border-white/10">{mapId} Nades</h1>
+        {/* Use the map's name, not the route param — maps added via the admin have
+            auto-generated Firestore IDs (e.g. "E0n3kjofIYkg8V2vSreO") that must never
+            be shown. Falls back to a neutral heading until the name loads. */}
+        <h1 className="text-xl lg:text-2xl font-semibold capitalize mb-4 bg-neutral-900/50 backdrop-blur-sm p-4 rounded-lg border border-white/10">{mapName ? `${mapName} Nades` : 'Nades'}</h1>
 
         {/* Mobile Filters - Top of page on mobile */}
         <div className="lg:hidden mb-6 space-y-4">
